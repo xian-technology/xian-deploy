@@ -1,0 +1,46 @@
+networks:
+  xian-net:
+    internal: false
+
+volumes:
+  grafana-data:
+
+services:
+  prometheus:
+    image: {{ xian_prometheus_image | to_json }}
+    restart: always
+    hostname: {{ xian_project_name }}-prometheus
+    command:
+      [
+        "--config.file=/etc/prometheus/prometheus.yml",
+        "--storage.tsdb.path=/prometheus",
+        "--web.enable-lifecycle"
+      ]
+    volumes:
+      - {{ (xian_prometheus_config_path ~ ':/etc/prometheus/prometheus.yml:ro') | to_json }}
+    networks:
+      - xian-net
+    ports:
+      - {{ (xian_prometheus_bind_host ~ ':' ~ xian_prometheus_port ~ ':9090') | to_json }}
+
+  grafana:
+    image: {{ xian_grafana_image | to_json }}
+    restart: always
+    hostname: {{ xian_project_name }}-grafana
+    depends_on:
+      prometheus:
+        condition: service_started
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_SERVER_HTTP_PORT: "3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - {{ (xian_monitoring_dir ~ '/grafana/provisioning:/etc/grafana/provisioning:ro') | to_json }}
+      - {{ (xian_monitoring_dir ~ '/grafana/dashboards:/var/lib/grafana/dashboards:ro') | to_json }}
+    networks:
+      - xian-net
+    ports:
+      - {{ (xian_grafana_bind_host ~ ':' ~ xian_grafana_port ~ ':3000') | to_json }}
+

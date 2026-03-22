@@ -1,0 +1,9 @@
+---
+- name: Deploy Xian runtime
+  hosts: xian_nodes
+  become: true
+  roles:
+    - role: xian_runtime
+      vars:
+        xian_runtime_action: deploy
+

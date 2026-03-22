@@ -1,0 +1,198 @@
+---
+- name: Validate topology
+  ansible.builtin.assert:
+    that:
+      - xian_topology in ["integrated", "fidelity"]
+      - xian_runtime_action in ["deploy", "stop", "restart", "status"]
+    fail_msg: Invalid xian_topology or xian_runtime_action
+
+- name: Select node images
+  ansible.builtin.set_fact:
+    xian_primary_image: >-
+      {{
+        xian_node_image_integrated
+        if xian_topology == "integrated"
+        else xian_node_image_split
+      }}
+    xian_dashboard_image: "{{ xian_node_image_split }}"
+    xian_main_compose_path: "{{ xian_runtime_dir }}/docker-compose.yml"
+    xian_monitoring_compose_path: "{{ xian_runtime_dir }}/docker-compose.monitoring.yml"
+    xian_prometheus_config_path: "{{ xian_monitoring_dir }}/prometheus.yml"
+
+- name: Create runtime directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ xian_runtime_dir }}"
+    - "{{ xian_monitoring_dir }}"
+    - "{{ xian_monitoring_dir }}/grafana/provisioning/dashboards"
+    - "{{ xian_monitoring_dir }}/grafana/provisioning/datasources"
+    - "{{ xian_monitoring_dir }}/grafana/dashboards"
+    - "{{ xian_bds_data_dir }}"
+    - "{{ xian_bds_spool_dir }}"
+  when: xian_runtime_action == "deploy"
+
+- name: Render main docker compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ xian_main_compose_path }}"
+    mode: "0644"
+  when: xian_runtime_action == "deploy"
+
+- name: Render monitoring docker compose file
+  ansible.builtin.template:
+    src: docker-compose.monitoring.yml.j2
+    dest: "{{ xian_monitoring_compose_path }}"
+    mode: "0644"
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_enable_monitoring | bool
+
+- name: Render Prometheus config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ xian_prometheus_config_path }}"
+    mode: "0644"
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_enable_monitoring | bool
+
+- name: Copy Grafana provisioning
+  ansible.builtin.copy:
+    src: "monitoring/grafana/provisioning/{{ item }}"
+    dest: "{{ xian_monitoring_dir }}/grafana/provisioning/{{ item }}"
+    mode: "0644"
+  loop:
+    - dashboards/xian.yml
+    - datasources/xian.yml
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_enable_monitoring | bool
+
+- name: Copy Grafana dashboard
+  ansible.builtin.copy:
+    src: monitoring/grafana/dashboards/xian-overview.json
+    dest: "{{ xian_monitoring_dir }}/grafana/dashboards/xian-overview.json"
+    mode: "0644"
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_enable_monitoring | bool
+
+- name: Pull deployment images
+  ansible.builtin.shell: >-
+    docker compose
+    -p {{ xian_project_name | quote }}
+    -f {{ xian_main_compose_path | quote }}
+    {% if xian_enable_monitoring | bool %}
+    -f {{ xian_monitoring_compose_path | quote }}
+    {% endif %}
+    pull
+  changed_when: false
+  when: xian_runtime_action == "deploy"
+
+- name: Configure remote node home
+  ansible.builtin.shell: >-
+    docker run --rm
+    -v {{ xian_cometbft_home | quote }}:/root/.cometbft
+    -e XIAN_CONFIGS_DIR=/opt/xian-configs
+    {{ xian_primary_image | quote }}
+    xian-configure-node
+    --moniker {{ xian_moniker | quote }}
+    {{ '--allow-cors' if xian_allow_cors else '--no-allow-cors' }}
+    {{ '--prometheus' if xian_prometheus_enabled else '--no-prometheus' }}
+    {{ '--service-node' if xian_service_node else '--no-service-node' }}
+    {{ '--enable-pruning' if xian_enable_pruning else '--no-enable-pruning' }}
+    {{ '--copy-genesis' if xian_copy_genesis else '--no-copy-genesis' }}
+    {{ '--statesync-enable' if xian_statesync_enable else '--no-statesync-enable' }}
+    {{ '--metrics-enabled' if xian_metrics_enabled else '--no-metrics-enabled' }}
+    {{ '--parallel-execution-enabled' if xian_parallel_execution_enabled else '--no-parallel-execution-enabled' }}
+    --blocks-to-keep {{ xian_blocks_to_keep | quote }}
+    --block-policy-mode {{ xian_block_policy_mode | quote }}
+    --block-policy-interval {{ xian_block_policy_interval | quote }}
+    --tracer-mode {{ xian_tracer_mode | quote }}
+    --metrics-host {{ xian_metrics_host | quote }}
+    --metrics-port {{ xian_metrics_port | quote }}
+    --metrics-bds-refresh-seconds {{ xian_metrics_bds_refresh_seconds | quote }}
+    --parallel-execution-workers {{ xian_parallel_execution_workers | quote }}
+    --parallel-execution-min-transactions {{ xian_parallel_execution_min_transactions | quote }}
+    --pending-nonce-reservation-ttl-seconds {{ xian_pending_nonce_reservation_ttl_seconds | quote }}
+    --bds-dsn {{ xian_bds_dsn | quote }}
+    --bds-host {{ (xian_bds_host if xian_enable_bds else '') | quote }}
+    --bds-port {{ xian_bds_port | quote }}
+    --bds-database {{ xian_bds_database | quote }}
+    --bds-user {{ (xian_bds_user if xian_enable_bds else '') | quote }}
+    --bds-password {{ (xian_bds_password if xian_enable_bds else '') | quote }}
+    --bds-pool-min-size {{ xian_bds_pool_min_size | quote }}
+    --bds-pool-max-size {{ xian_bds_pool_max_size | quote }}
+    --bds-statement-timeout-ms {{ xian_bds_statement_timeout_ms | quote }}
+    --bds-application-name {{ xian_bds_application_name | quote }}
+    --bds-spool-dir {{ (xian_bds_spool_dir if xian_enable_bds else '') | quote }}
+    --bds-spool-warn-entries {{ xian_bds_spool_warn_entries | quote }}
+    --bds-spool-warn-bytes {{ xian_bds_spool_warn_bytes | quote }}
+    --bds-disk-free-warn-bytes {{ xian_bds_disk_free_warn_bytes | quote }}
+    --genesis-source {{ xian_genesis_source | quote }}
+    {% if xian_seed_node | length > 0 %} --seed-node {{ xian_seed_node | quote }} {% endif %}
+    {% if xian_seed_node_address | length > 0 %} --seed-node-address {{ xian_seed_node_address | quote }} {% endif %}
+    {% if xian_snapshot_url | length > 0 %} --snapshot-url {{ xian_snapshot_url | quote }} {% endif %}
+    {% if xian_validator_private_key_hex | length > 0 %} --validator-privkey {{ xian_validator_private_key_hex | quote }} {% endif %}
+    {% for server in xian_statesync_rpc_servers %} --statesync-rpc-server {{ server | quote }} {% endfor %}
+    {% if xian_statesync_enable %}
+    --statesync-trust-height {{ xian_statesync_trust_height | quote }}
+    --statesync-trust-hash {{ xian_statesync_trust_hash | quote }}
+    --statesync-trust-period {{ xian_statesync_trust_period | quote }}
+    {% endif %}
+  when: xian_runtime_action == "deploy"
+
+- name: Start or update runtime
+  ansible.builtin.shell: >-
+    docker compose
+    -p {{ xian_project_name | quote }}
+    -f {{ xian_main_compose_path | quote }}
+    {% if xian_enable_monitoring | bool %}
+    -f {{ xian_monitoring_compose_path | quote }}
+    {% endif %}
+    up -d
+  when: xian_runtime_action == "deploy"
+
+- name: Stop runtime
+  ansible.builtin.shell: >-
+    docker compose
+    -p {{ xian_project_name | quote }}
+    -f {{ xian_main_compose_path | quote }}
+    {% if xian_enable_monitoring | bool %}
+    -f {{ xian_monitoring_compose_path | quote }}
+    {% endif %}
+    down
+  when: xian_runtime_action == "stop"
+
+- name: Restart runtime
+  ansible.builtin.shell: >-
+    docker compose
+    -p {{ xian_project_name | quote }}
+    -f {{ xian_main_compose_path | quote }}
+    {% if xian_enable_monitoring | bool %}
+    -f {{ xian_monitoring_compose_path | quote }}
+    {% endif %}
+    restart
+  when: xian_runtime_action == "restart"
+
+- name: Show runtime status
+  ansible.builtin.shell: >-
+    docker compose
+    -p {{ xian_project_name | quote }}
+    -f {{ xian_main_compose_path | quote }}
+    {% if xian_enable_monitoring | bool %}
+    -f {{ xian_monitoring_compose_path | quote }}
+    {% endif %}
+    ps
+  register: xian_runtime_status
+  changed_when: false
+  when: xian_runtime_action == "status"
+
+- name: Print runtime status
+  ansible.builtin.debug:
+    msg: "{{ xian_runtime_status.stdout_lines }}"
+  when: xian_runtime_action == "status"
+

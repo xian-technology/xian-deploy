@@ -1,0 +1,195 @@
+networks:
+  xian-net:
+    internal: false
+{% if xian_enable_bds %}
+  xian-db:
+    internal: true
+{% endif %}
+
+{% if xian_enable_monitoring %}
+volumes:
+  grafana-data:
+{% endif %}
+
+services:
+{% if xian_topology == "integrated" %}
+  abci:
+    image: {{ xian_node_image_integrated | to_json }}
+    restart: always
+    stop_grace_period: 45s
+    hostname: {{ xian_project_name }}-abci
+    mem_limit: {{ xian_integrated_memory_limit | to_json }}
+    mem_reservation: {{ xian_integrated_memory_reservation | to_json }}
+    volumes:
+      - {{ (xian_cometbft_home ~ ':/root/.cometbft') | to_json }}
+    environment:
+      XIAN_CONFIGS_DIR: /opt/xian-configs
+      S6_VERBOSITY: {{ xian_s6_verbosity | to_json }}
+      XIAN_PERF_ENABLED: {{ (1 if xian_perf_enabled else 0) | to_json }}
+      XIAN_PERF_RECENT_BLOCKS: {{ xian_perf_recent_blocks | to_json }}
+      XIAN_PERF_OUTPUT_PATH: /root/.cometbft/xian-perf.json
+{% if xian_enable_bds %}
+      XIAN_BDS_HOST: {{ xian_bds_host | to_json }}
+      XIAN_BDS_PORT: {{ xian_bds_port | to_json }}
+      XIAN_BDS_DATABASE: {{ xian_bds_database | to_json }}
+      XIAN_BDS_USER: {{ xian_bds_user | to_json }}
+      XIAN_BDS_PASSWORD: {{ xian_bds_password | to_json }}
+      XIAN_BDS_POOL_MIN_SIZE: {{ xian_bds_pool_min_size | to_json }}
+      XIAN_BDS_POOL_MAX_SIZE: {{ xian_bds_pool_max_size | to_json }}
+      XIAN_BDS_STATEMENT_TIMEOUT_MS: {{ xian_bds_statement_timeout_ms | to_json }}
+      XIAN_BDS_APPLICATION_NAME: {{ xian_bds_application_name | to_json }}
+      XIAN_BDS_SPOOL_DIR: {{ xian_bds_spool_dir | to_json }}
+      XIAN_BDS_SPOOL_WARN_ENTRIES: {{ xian_bds_spool_warn_entries | to_json }}
+      XIAN_BDS_SPOOL_WARN_BYTES: {{ xian_bds_spool_warn_bytes | to_json }}
+      XIAN_BDS_DISK_FREE_WARN_BYTES: {{ xian_bds_disk_free_warn_bytes | to_json }}
+{% endif %}
+    networks:
+      - xian-net
+{% if xian_enable_bds %}
+      - xian-db
+{% endif %}
+    ports:
+      - {{ (xian_rpc_bind_host ~ ':' ~ xian_rpc_port ~ ':26657') | to_json }}
+      - {{ (xian_p2p_bind_host ~ ':' ~ xian_p2p_port ~ ':26656') | to_json }}
+      - {{ (xian_comet_metrics_bind_host ~ ':' ~ xian_comet_metrics_port ~ ':26660') | to_json }}
+      - {{ (xian_app_metrics_bind_host ~ ':' ~ xian_metrics_port ~ ':' ~ xian_metrics_port) | to_json }}
+{% if xian_enable_dashboard %}
+
+  dashboard:
+    image: {{ xian_dashboard_image | to_json }}
+    restart: always
+    init: true
+    stop_grace_period: 30s
+    hostname: {{ xian_project_name }}-dashboard
+    mem_limit: {{ xian_dashboard_memory_limit | to_json }}
+    mem_reservation: {{ xian_dashboard_memory_reservation | to_json }}
+    depends_on:
+      abci:
+        condition: service_started
+    command:
+      [
+        "xian-dashboard",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+        "--rpc-url",
+        "http://abci:26657"
+      ]
+    networks:
+      - xian-net
+    ports:
+      - {{ (xian_dashboard_bind_host ~ ':' ~ xian_dashboard_port ~ ':8080') | to_json }}
+{% endif %}
+{% else %}
+  abci-app:
+    image: {{ xian_node_image_split | to_json }}
+    restart: always
+    init: true
+    stop_grace_period: 45s
+    hostname: {{ xian_project_name }}-abci
+    mem_limit: {{ xian_fidelity_abci_memory_limit | to_json }}
+    mem_reservation: {{ xian_fidelity_abci_memory_reservation | to_json }}
+    volumes:
+      - {{ (xian_cometbft_home ~ ':/root/.cometbft') | to_json }}
+    environment:
+      XIAN_CONFIGS_DIR: /opt/xian-configs
+      XIAN_PERF_ENABLED: {{ (1 if xian_perf_enabled else 0) | to_json }}
+      XIAN_PERF_RECENT_BLOCKS: {{ xian_perf_recent_blocks | to_json }}
+      XIAN_PERF_OUTPUT_PATH: /root/.cometbft/xian-perf.json
+{% if xian_enable_bds %}
+      XIAN_BDS_HOST: {{ xian_bds_host | to_json }}
+      XIAN_BDS_PORT: {{ xian_bds_port | to_json }}
+      XIAN_BDS_DATABASE: {{ xian_bds_database | to_json }}
+      XIAN_BDS_USER: {{ xian_bds_user | to_json }}
+      XIAN_BDS_PASSWORD: {{ xian_bds_password | to_json }}
+      XIAN_BDS_POOL_MIN_SIZE: {{ xian_bds_pool_min_size | to_json }}
+      XIAN_BDS_POOL_MAX_SIZE: {{ xian_bds_pool_max_size | to_json }}
+      XIAN_BDS_STATEMENT_TIMEOUT_MS: {{ xian_bds_statement_timeout_ms | to_json }}
+      XIAN_BDS_APPLICATION_NAME: {{ xian_bds_application_name | to_json }}
+      XIAN_BDS_SPOOL_DIR: {{ xian_bds_spool_dir | to_json }}
+      XIAN_BDS_SPOOL_WARN_ENTRIES: {{ xian_bds_spool_warn_entries | to_json }}
+      XIAN_BDS_SPOOL_WARN_BYTES: {{ xian_bds_spool_warn_bytes | to_json }}
+      XIAN_BDS_DISK_FREE_WARN_BYTES: {{ xian_bds_disk_free_warn_bytes | to_json }}
+{% endif %}
+    command: ["xian-abci"]
+    networks:
+      - xian-net
+{% if xian_enable_bds %}
+      - xian-db
+{% endif %}
+    ports:
+      - {{ (xian_app_metrics_bind_host ~ ':' ~ xian_metrics_port ~ ':' ~ xian_metrics_port) | to_json }}
+
+  cometbft:
+    image: {{ xian_node_image_split | to_json }}
+    restart: always
+    init: true
+    stop_grace_period: 45s
+    hostname: {{ xian_project_name }}-cometbft
+    mem_limit: {{ xian_fidelity_cometbft_memory_limit | to_json }}
+    mem_reservation: {{ xian_fidelity_cometbft_memory_reservation | to_json }}
+    volumes:
+      - {{ (xian_cometbft_home ~ ':/root/.cometbft') | to_json }}
+    command: ["cometbft", "node", "--rpc.laddr", "tcp://0.0.0.0:26657"]
+    networks:
+      - xian-net
+    ports:
+      - {{ (xian_rpc_bind_host ~ ':' ~ xian_rpc_port ~ ':26657') | to_json }}
+      - {{ (xian_p2p_bind_host ~ ':' ~ xian_p2p_port ~ ':26656') | to_json }}
+      - {{ (xian_comet_metrics_bind_host ~ ':' ~ xian_comet_metrics_port ~ ':26660') | to_json }}
+{% if xian_enable_dashboard %}
+
+  dashboard:
+    image: {{ xian_dashboard_image | to_json }}
+    restart: always
+    init: true
+    stop_grace_period: 30s
+    hostname: {{ xian_project_name }}-dashboard
+    mem_limit: {{ xian_dashboard_memory_limit | to_json }}
+    mem_reservation: {{ xian_dashboard_memory_reservation | to_json }}
+    depends_on:
+      cometbft:
+        condition: service_started
+    command:
+      [
+        "xian-dashboard",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+        "--rpc-url",
+        "http://cometbft:26657"
+      ]
+    networks:
+      - xian-net
+    ports:
+      - {{ (xian_dashboard_bind_host ~ ':' ~ xian_dashboard_port ~ ':8080') | to_json }}
+{% endif %}
+{% endif %}
+{% if xian_enable_bds %}
+
+  postgres:
+    image: {{ xian_postgres_image | to_json }}
+    restart: always
+    init: true
+    stop_grace_period: 30s
+    mem_limit: {{ xian_postgres_memory_limit | to_json }}
+    mem_reservation: {{ xian_postgres_memory_reservation | to_json }}
+    environment:
+      POSTGRES_USER: {{ xian_bds_user | to_json }}
+      POSTGRES_PASSWORD: {{ xian_bds_password | to_json }}
+      POSTGRES_DB: {{ xian_bds_database | to_json }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ xian_bds_user }} -d {{ xian_bds_database }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - {{ (xian_bds_data_dir ~ ':/var/lib/postgresql/data') | to_json }}
+    networks:
+      - xian-db
+    expose:
+      - "5432"
+{% endif %}
+

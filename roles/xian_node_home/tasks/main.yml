@@ -1,0 +1,26 @@
+---
+- name: Validate node home archive path
+  ansible.builtin.assert:
+    that:
+      - xian_node_home_archive is string
+      - xian_node_home_archive | length > 0
+    fail_msg: xian_node_home_archive must point to a local tar or tar.gz archive
+
+- name: Remove existing node home
+  ansible.builtin.file:
+    path: "{{ xian_cometbft_home }}"
+    state: absent
+  when: xian_node_home_replace | bool
+
+- name: Create node home directory
+  ansible.builtin.file:
+    path: "{{ xian_cometbft_home }}"
+    state: directory
+    mode: "0755"
+
+- name: Upload and extract node home archive
+  ansible.builtin.unarchive:
+    src: "{{ xian_node_home_archive }}"
+    dest: "{{ xian_cometbft_home }}"
+    remote_src: false
+

@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: xian_abci
+    static_configs:
+      - targets:
+{% if xian_topology == "integrated" %}
+          - abci:{{ xian_metrics_port }}
+{% else %}
+          - abci-app:{{ xian_metrics_port }}
+{% endif %}
+
+  - job_name: xian_cometbft
+    static_configs:
+      - targets:
+{% if xian_topology == "integrated" %}
+          - abci:26660
+{% else %}
+          - cometbft:26660
+{% endif %}

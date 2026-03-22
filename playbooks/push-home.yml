@@ -1,0 +1,7 @@
+---
+- name: Upload prepared Xian node home
+  hosts: xian_nodes
+  become: true
+  roles:
+    - xian_node_home
+

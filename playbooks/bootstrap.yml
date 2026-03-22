@@ -1,0 +1,7 @@
+---
+- name: Bootstrap Xian hosts
+  hosts: xian_nodes
+  become: true
+  roles:
+    - docker_host
+
