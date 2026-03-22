@@ -17,6 +17,7 @@ xian_monitoring_dir: "{{ xian_runtime_dir }}/monitoring"
 
 # Path on the control machine.
 xian_node_home_archive: /path/to/node-home.tar.gz
+xian_state_snapshot_archive: ""
 xian_node_home_replace: true
 
 xian_moniker: xian-node
@@ -99,4 +100,3 @@ xian_dashboard_memory_limit: 512m
 xian_dashboard_memory_reservation: 256m
 xian_postgres_memory_limit: 1024m
 xian_postgres_memory_reservation: 512m
-

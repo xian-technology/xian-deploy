@@ -1,0 +1,10 @@
+---
+- name: Roll out a Xian runtime update
+  hosts: xian_nodes
+  become: true
+  serial: 1
+  roles:
+    - role: xian_runtime
+      vars:
+        xian_runtime_action: deploy
+

@@ -1,0 +1,53 @@
+---
+- name: Restore a Xian state snapshot and redeploy
+  hosts: xian_nodes
+  become: true
+  serial: 1
+  vars:
+    xian_state_snapshot_remote_path: "{{ xian_deploy_root }}/snapshots/state-snapshot.tar.gz"
+    xian_restore_image: >-
+      {{
+        xian_node_image_integrated
+        if xian_topology == "integrated"
+        else xian_node_image_split
+      }}
+  pre_tasks:
+    - name: Validate state snapshot archive path
+      ansible.builtin.assert:
+        that:
+          - xian_state_snapshot_archive is string
+          - xian_state_snapshot_archive | length > 0
+        fail_msg: xian_state_snapshot_archive must point to a local snapshot tar.gz
+  tasks:
+    - name: Stop runtime before restore
+      ansible.builtin.include_role:
+        name: xian_runtime
+      vars:
+        xian_runtime_action: stop
+
+    - name: Create snapshot staging directory
+      ansible.builtin.file:
+        path: "{{ xian_deploy_root }}/snapshots"
+        state: directory
+        mode: "0755"
+
+    - name: Upload state snapshot archive
+      ansible.builtin.copy:
+        src: "{{ xian_state_snapshot_archive }}"
+        dest: "{{ xian_state_snapshot_remote_path }}"
+        mode: "0644"
+
+    - name: Import state snapshot into node home
+      ansible.builtin.shell: >-
+        docker run --rm
+        -v {{ xian_cometbft_home | quote }}:/root/.cometbft
+        -v {{ xian_state_snapshot_remote_path | quote }}:/snapshot.tar.gz:ro
+        {{ xian_restore_image | quote }}
+        xian-state-snapshot import --input-path /snapshot.tar.gz
+
+    - name: Redeploy runtime after restore
+      ansible.builtin.include_role:
+        name: xian_runtime
+      vars:
+        xian_runtime_action: deploy
+

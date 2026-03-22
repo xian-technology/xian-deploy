@@ -55,6 +55,7 @@ The most important variables are:
 - `xian_release_tag`
 - `xian_topology`
 - `xian_node_home_archive`
+- `xian_state_snapshot_archive`
 - `xian_moniker`
 - `xian_seed_node_address` or `xian_seed_node`
 - `xian_copy_genesis`
@@ -83,10 +84,22 @@ Deploy or update the runtime:
 ansible-playbook playbooks/deploy.yml
 ```
 
+Roll out an updated release across multiple hosts serially:
+
+```bash
+ansible-playbook playbooks/upgrade.yml
+```
+
 Inspect status:
 
 ```bash
 ansible-playbook playbooks/status.yml
+```
+
+Run a basic smoke check against the deployed node:
+
+```bash
+ansible-playbook playbooks/smoke.yml
 ```
 
 Restart services:
@@ -99,6 +112,12 @@ Stop the stack:
 
 ```bash
 ansible-playbook playbooks/stop.yml
+```
+
+Restore an exported Xian state snapshot and redeploy:
+
+```bash
+ansible-playbook playbooks/restore-state-snapshot.yml
 ```
 
 ## Node Home Preparation
@@ -142,3 +161,4 @@ The node dashboard is separate and optional.
 - pin `xian_release_tag` to a real release instead of using `latest`
 - keep real inventories and secrets private
 - store validator keys and passwords outside the public example inventory
+- when restoring state snapshots, set `xian_state_snapshot_archive` to the exported `xian-state-snapshot` tarball path

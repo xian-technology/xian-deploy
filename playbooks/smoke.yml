@@ -1,0 +1,57 @@
+---
+- name: Smoke check a Xian deployment
+  hosts: xian_nodes
+  become: true
+  tasks:
+    - name: Show container status
+      ansible.builtin.shell: >-
+        docker compose
+        -p {{ xian_project_name | quote }}
+        -f {{ xian_runtime_dir | quote }}/docker-compose.yml
+        {% if xian_enable_monitoring | bool %}
+        -f {{ xian_runtime_dir | quote }}/docker-compose.monitoring.yml
+        {% endif %}
+        ps
+      register: xian_smoke_ps
+      changed_when: false
+
+    - name: Check node RPC status
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ xian_rpc_port }}/status"
+        return_content: true
+      register: xian_rpc_status
+      changed_when: false
+
+    - name: Check Xian metrics endpoint
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ xian_metrics_port }}/metrics"
+        return_content: false
+      register: xian_metrics_status
+      changed_when: false
+      when: xian_metrics_enabled | bool
+
+    - name: Check dashboard
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ xian_dashboard_port }}/"
+        return_content: false
+      register: xian_dashboard_status
+      changed_when: false
+      when: xian_enable_dashboard | bool
+
+    - name: Check Prometheus
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ xian_prometheus_port }}/-/ready"
+        return_content: false
+      register: xian_prometheus_status
+      changed_when: false
+      when: xian_enable_monitoring | bool
+
+    - name: Print smoke summary
+      ansible.builtin.debug:
+        msg:
+          - "{{ xian_smoke_ps.stdout_lines }}"
+          - "rpc_height={{ xian_rpc_status.json.result.sync_info.latest_block_height }}"
+          - "rpc_catching_up={{ xian_rpc_status.json.result.sync_info.catching_up }}"
+          - "metrics_ok={{ (xian_metrics_status.status if xian_metrics_enabled else 'disabled') }}"
+          - "dashboard_ok={{ (xian_dashboard_status.status if xian_enable_dashboard else 'disabled') }}"
+          - "prometheus_ok={{ (xian_prometheus_status.status if xian_enable_monitoring else 'disabled') }}"
