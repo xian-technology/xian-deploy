@@ -36,6 +36,7 @@ make validate
 - [AGENTS.md](AGENTS.md)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/BACKLOG.md](docs/BACKLOG.md)
+- [docs/OPERATIONS.md](docs/OPERATIONS.md)
 - [docs/README.md](docs/README.md)
 
 ## Workflow
@@ -56,7 +57,9 @@ ansible-playbook playbooks/push-home.yml
 ansible-playbook playbooks/deploy.yml
 ansible-playbook playbooks/upgrade.yml
 ansible-playbook playbooks/status.yml
+ansible-playbook playbooks/health.yml
 ansible-playbook playbooks/smoke.yml
+ansible-playbook playbooks/bootstrap-state-sync.yml
 ansible-playbook playbooks/restart.yml
 ansible-playbook playbooks/stop.yml
 ansible-playbook playbooks/restore-state-snapshot.yml
@@ -64,3 +67,20 @@ ansible-playbook playbooks/restore-state-snapshot.yml
 
 Optional services include the Xian dashboard, BDS with PostgreSQL, and
 Prometheus + Grafana.
+
+## Recovery Runbooks
+
+Use these recovery/bootstrap paths intentionally:
+
+- prepared node-home archive:
+  `playbooks/push-home.yml` then `playbooks/deploy.yml`
+- application state snapshot import:
+  `playbooks/restore-state-snapshot.yml`
+- protocol state sync:
+  `playbooks/bootstrap-state-sync.yml`
+
+For a fuller remote diagnosis than the basic smoke check, use:
+
+```bash
+ansible-playbook playbooks/health.yml
+```

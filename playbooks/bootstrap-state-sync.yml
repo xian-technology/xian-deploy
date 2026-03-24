@@ -1,0 +1,48 @@
+---
+- name: Bootstrap a Xian node with state sync enabled
+  hosts: xian_nodes
+  become: true
+  serial: 1
+  pre_tasks:
+    - name: Validate state-sync inventory settings
+      ansible.builtin.assert:
+        that:
+          - xian_statesync_enable | bool
+          - xian_statesync_rpc_servers | length >= 2
+          - (xian_statesync_trust_height | int) > 0
+          - xian_statesync_trust_hash is string
+          - xian_statesync_trust_hash | length > 0
+          - xian_statesync_trust_period is string
+          - xian_statesync_trust_period | length > 0
+        fail_msg: >-
+          State sync bootstrap requires xian_statesync_enable=true, at least two
+          RPC servers, and non-empty trust height/hash/period settings.
+  tasks:
+    - name: Deploy runtime with state-sync configuration
+      ansible.builtin.include_role:
+        name: xian_runtime
+      vars:
+        xian_runtime_action: deploy
+
+    - name: Wait for node RPC to come up after deployment
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ xian_rpc_port }}/status"
+        return_content: true
+      register: xian_statesync_rpc
+      changed_when: false
+      failed_when: false
+      until: not (xian_statesync_rpc.failed | default(false))
+      retries: 12
+      delay: 5
+
+    - name: Print state-sync bootstrap summary
+      ansible.builtin.debug:
+        msg:
+          state_sync_enabled: "{{ xian_statesync_enable | bool }}"
+          rpc_servers: "{{ xian_statesync_rpc_servers }}"
+          trust_height: "{{ xian_statesync_trust_height }}"
+          trust_hash: "{{ xian_statesync_trust_hash }}"
+          trust_period: "{{ xian_statesync_trust_period }}"
+          rpc_reachable: "{{ not (xian_statesync_rpc.failed | default(false)) }}"
+          rpc_height: "{{ xian_statesync_rpc.json.result.sync_info.latest_block_height | default(None) if not (xian_statesync_rpc.failed | default(false)) else None }}"
+          rpc_catching_up: "{{ xian_statesync_rpc.json.result.sync_info.catching_up | default(None) if not (xian_statesync_rpc.failed | default(false)) else None }}"
