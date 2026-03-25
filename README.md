@@ -1,22 +1,32 @@
 # xian-deploy
 
-`xian-deploy` is the Linux-focused deployment layer for Xian nodes. It deploys
-released container images and prepared node-home archives instead of cloning or
-building source code on remote machines.
+`xian-deploy` is the remote deployment layer for Xian nodes on Linux hosts. It
+deploys released node images and prepared node-home archives instead of
+building source code on the target machine.
 
-## Scope
+## Quick Start
 
-This repo owns:
+```bash
+ansible-playbook playbooks/bootstrap.yml
+ansible-playbook playbooks/push-home.yml
+ansible-playbook playbooks/deploy.yml
+ansible-playbook playbooks/health.yml
+```
 
-- remote host bootstrap and runtime deployment playbooks
-- inventory-driven configuration for released Xian node images
-- optional enablement of dashboard, BDS, and monitoring services
+That flow assumes:
 
-This repo does not own:
+- a prepared node home already exists
+- inventory and group vars are set for the target hosts
+- the target uses released Xian images rather than local source builds
 
-- node-home creation and network-join UX
-- runtime image definitions
-- deterministic node behavior
+## Principles
+
+- Deploy released artifacts, not source checkouts.
+- Keep host setup explicit and inventory-driven.
+- Treat dashboard, BDS, and monitoring as optional layers on top of the core
+  node runtime.
+- Keep remote flows composable: bootstrap, deploy, upgrade, health, and
+  recovery should remain separate entrypoints.
 
 ## Key Directories
 
@@ -24,7 +34,7 @@ This repo does not own:
 - `roles/`: reusable deployment roles and runtime tasks
 - `inventories/`: example inventory and group variable layout
 - `presets/`: reusable runtime posture presets for remote starter flows
-- `docs/`: repo-local notes and future enhancements
+- `docs/`: repo-local architecture, operations, and pack notes
 
 ## Validation
 
@@ -41,52 +51,17 @@ make validate
 - [docs/SOLUTION_PACKS.md](docs/SOLUTION_PACKS.md)
 - [docs/README.md](docs/README.md)
 
-## Workflow
+## Common Playbooks
 
-The supported flow is:
+Use these playbooks directly when operating remote hosts:
 
-1. prepare a node home archive locally
-2. bootstrap a remote Linux host with Docker
-3. upload the prepared node home
-4. configure that home in place with `xian-configure-node`
-5. run the released node image in either `integrated` or `fidelity` topology
+- `playbooks/bootstrap.yml`: prepare hosts for Docker-based Xian runtime
+- `playbooks/push-home.yml`: upload a prepared node-home archive
+- `playbooks/deploy.yml`: start or reconfigure the released node runtime
+- `playbooks/upgrade.yml`: roll forward to a newer released image
+- `playbooks/health.yml`: run remote health checks
+- `playbooks/bootstrap-state-sync.yml`: join by protocol state sync
+- `playbooks/restore-state-snapshot.yml`: restore an application-state snapshot
 
-Common entrypoints:
-
-```bash
-ansible-playbook playbooks/bootstrap.yml
-ansible-playbook playbooks/push-home.yml
-ansible-playbook playbooks/deploy.yml
-ansible-playbook playbooks/upgrade.yml
-ansible-playbook playbooks/status.yml
-ansible-playbook playbooks/health.yml
-ansible-playbook playbooks/smoke.yml
-ansible-playbook playbooks/bootstrap-state-sync.yml
-ansible-playbook playbooks/restart.yml
-ansible-playbook playbooks/stop.yml
-ansible-playbook playbooks/restore-state-snapshot.yml
-```
-
-For the validated remote reference-app flows, pair those playbooks with the
-starter presets under `presets/templates/` as described in
-`docs/SOLUTION_PACKS.md`.
-
-Optional services include the Xian dashboard, BDS with PostgreSQL, and
-Prometheus + Grafana.
-
-## Recovery Runbooks
-
-Use these recovery/bootstrap paths intentionally:
-
-- prepared node-home archive:
-  `playbooks/push-home.yml` then `playbooks/deploy.yml`
-- application state snapshot import:
-  `playbooks/restore-state-snapshot.yml`
-- protocol state sync:
-  `playbooks/bootstrap-state-sync.yml`
-
-For a fuller remote diagnosis than the basic smoke check, use:
-
-```bash
-ansible-playbook playbooks/health.yml
-```
+For validated reference-app flows, pair those playbooks with the starter
+presets under `presets/templates/` as described in `docs/SOLUTION_PACKS.md`.
