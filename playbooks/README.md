@@ -12,3 +12,10 @@
 - `bootstrap-state-sync.yml`: deploy with validated state-sync settings
 - `restore-state-snapshot.yml`: restore an exported state snapshot
 - `smoke.yml`: basic post-deploy health check
+
+## Typical Flow
+1. `bootstrap.yml`
+2. `push-home.yml` or `bootstrap-state-sync.yml`
+3. `deploy.yml`
+4. `health.yml`
+5. `upgrade.yml` for later image rollouts

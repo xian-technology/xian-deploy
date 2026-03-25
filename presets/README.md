@@ -10,3 +10,5 @@
 - Apply these with `ansible-playbook ... -e @presets/templates/<name>.yml`.
 - Keep environment-specific secrets and host-specific values in your private
   inventory, not in these public presets.
+- Treat presets as reusable posture defaults, not as replacements for a real
+  inventory or host-specific deployment plan.
