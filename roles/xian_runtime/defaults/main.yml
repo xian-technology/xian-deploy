@@ -1,3 +1,4 @@
 ---
 xian_runtime_action: deploy
-
+xian_monitoring_dashboard_preset: overview
+xian_monitoring_alert_preset: none

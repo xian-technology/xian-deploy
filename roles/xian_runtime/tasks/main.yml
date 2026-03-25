@@ -18,6 +18,7 @@
     xian_main_compose_path: "{{ xian_runtime_dir }}/docker-compose.yml"
     xian_monitoring_compose_path: "{{ xian_runtime_dir }}/docker-compose.monitoring.yml"
     xian_prometheus_config_path: "{{ xian_monitoring_dir }}/prometheus.yml"
+    xian_prometheus_rules_path: "{{ xian_monitoring_dir }}/rules.yml"
 
 - name: Create runtime directories
   ansible.builtin.file:
@@ -27,6 +28,7 @@
   loop:
     - "{{ xian_runtime_dir }}"
     - "{{ xian_monitoring_dir }}"
+    - "{{ xian_monitoring_dir }}/rules"
     - "{{ xian_monitoring_dir }}/grafana/provisioning/dashboards"
     - "{{ xian_monitoring_dir }}/grafana/provisioning/datasources"
     - "{{ xian_monitoring_dir }}/grafana/dashboards"
@@ -59,6 +61,15 @@
     - xian_runtime_action == "deploy"
     - xian_enable_monitoring | bool
 
+- name: Render Prometheus alert rules
+  ansible.builtin.template:
+    src: prometheus.rules.yml.j2
+    dest: "{{ xian_prometheus_rules_path }}"
+    mode: "0644"
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_enable_monitoring | bool
+
 - name: Copy Grafana provisioning
   ansible.builtin.copy:
     src: "monitoring/grafana/provisioning/{{ item }}"
@@ -79,6 +90,34 @@
   when:
     - xian_runtime_action == "deploy"
     - xian_enable_monitoring | bool
+
+- name: Remove stale preset dashboards
+  ansible.builtin.file:
+    path: "{{ xian_monitoring_dir }}/grafana/dashboards/{{ item }}"
+    state: absent
+  loop:
+    - xian-embedded-backend.json
+    - xian-shared-network.json
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_enable_monitoring | bool
+
+- name: Copy preset Grafana dashboard
+  ansible.builtin.copy:
+    src: "monitoring/grafana/dashboards/{{ item.src }}"
+    dest: "{{ xian_monitoring_dir }}/grafana/dashboards/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - src: xian-embedded-backend.json
+      dest: xian-embedded-backend.json
+      preset: embedded_backend
+    - src: xian-shared-network.json
+      dest: xian-shared-network.json
+      preset: shared_network
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_enable_monitoring | bool
+    - xian_monitoring_dashboard_preset == item.preset
 
 - name: Pull deployment images
   ansible.builtin.shell: >-
@@ -195,4 +234,3 @@
   ansible.builtin.debug:
     msg: "{{ xian_runtime_status.stdout_lines }}"
   when: xian_runtime_action == "status"
-

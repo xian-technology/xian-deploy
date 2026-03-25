@@ -1,0 +1,17 @@
+---
+all:
+  children:
+    xian_nodes:
+      children:
+        xian_validators:
+          hosts:
+            validator-1.example.org:
+              ansible_user: deploy
+            validator-2.example.org:
+              ansible_user: deploy
+            validator-3.example.org:
+              ansible_user: deploy
+        xian_service_nodes:
+          hosts:
+            service-1.example.org:
+              ansible_user: deploy

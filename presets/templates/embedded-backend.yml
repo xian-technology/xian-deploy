@@ -1,0 +1,14 @@
+---
+# Application-oriented remote service-node posture.
+xian_topology: integrated
+xian_enable_dashboard: false
+xian_enable_bds: true
+xian_enable_monitoring: true
+xian_service_node: true
+
+xian_block_policy_mode: on_demand
+xian_block_policy_interval: 0s
+xian_tracer_mode: native_instruction_v1
+
+xian_monitoring_dashboard_preset: embedded_backend
+xian_monitoring_alert_preset: embedded_backend

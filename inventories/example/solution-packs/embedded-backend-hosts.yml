@@ -1,0 +1,7 @@
+---
+all:
+  children:
+    xian_nodes:
+      hosts:
+        service-1.example.org:
+          ansible_user: deploy

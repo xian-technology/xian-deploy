@@ -6,4 +6,5 @@
 ## Notes
 - Keep real inventories and secrets out of the public repo.
 - Use this folder as the shape reference for private deployment repos.
-
+- The `example/solution-packs/` subfolder shows the recommended host layouts for
+  the validated remote starter flows.

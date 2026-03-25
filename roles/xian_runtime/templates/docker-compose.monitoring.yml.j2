@@ -18,6 +18,7 @@ services:
       ]
     volumes:
       - {{ (xian_prometheus_config_path ~ ':/etc/prometheus/prometheus.yml:ro') | to_json }}
+      - {{ (xian_prometheus_rules_path ~ ':/etc/prometheus/rules.yml:ro') | to_json }}
     networks:
       - xian-net
     ports:
@@ -43,4 +44,3 @@ services:
       - xian-net
     ports:
       - {{ (xian_grafana_bind_host ~ ':' ~ xian_grafana_port ~ ':3000') | to_json }}
-

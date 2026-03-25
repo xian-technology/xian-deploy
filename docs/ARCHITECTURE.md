@@ -8,7 +8,9 @@ Main areas:
 - `roles/docker_host/`: Docker bootstrap on target hosts
 - `roles/xian_node_home/`: prepared node-home upload and extraction
 - `roles/xian_runtime/`: runtime rendering, remote node configuration, and Compose operations
+- `presets/`: reusable remote deployment postures aligned with the Xian template classes
 - `docs/OPERATIONS.md`: concrete remote runbooks for health and recovery
+- `docs/SOLUTION_PACKS.md`: remote starter-flow mapping for the validated reference apps
 
 Dependency direction:
 

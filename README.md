@@ -23,6 +23,7 @@ This repo does not own:
 - `playbooks/`: bootstrap, deploy, upgrade, smoke, and restore entrypoints
 - `roles/`: reusable deployment roles and runtime tasks
 - `inventories/`: example inventory and group variable layout
+- `presets/`: reusable runtime posture presets for remote starter flows
 - `docs/`: repo-local notes and future enhancements
 
 ## Validation
@@ -37,6 +38,7 @@ make validate
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/BACKLOG.md](docs/BACKLOG.md)
 - [docs/OPERATIONS.md](docs/OPERATIONS.md)
+- [docs/SOLUTION_PACKS.md](docs/SOLUTION_PACKS.md)
 - [docs/README.md](docs/README.md)
 
 ## Workflow
@@ -64,6 +66,10 @@ ansible-playbook playbooks/restart.yml
 ansible-playbook playbooks/stop.yml
 ansible-playbook playbooks/restore-state-snapshot.yml
 ```
+
+For the validated remote reference-app flows, pair those playbooks with the
+starter presets under `presets/templates/` as described in
+`docs/SOLUTION_PACKS.md`.
 
 Optional services include the Xian dashboard, BDS with PostgreSQL, and
 Prometheus + Grafana.

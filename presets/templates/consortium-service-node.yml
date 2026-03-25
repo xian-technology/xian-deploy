@@ -1,0 +1,14 @@
+---
+# Service-node posture for a small shared-state consortium network.
+xian_topology: integrated
+xian_enable_dashboard: true
+xian_enable_bds: true
+xian_enable_monitoring: true
+xian_service_node: true
+
+xian_block_policy_mode: idle_interval
+xian_block_policy_interval: 10s
+xian_tracer_mode: native_instruction_v1
+
+xian_monitoring_dashboard_preset: shared_network
+xian_monitoring_alert_preset: shared_network

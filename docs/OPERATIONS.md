@@ -2,6 +2,8 @@
 
 This file records the concrete operator runbooks for `xian-deploy`.
 
+For the validated remote reference-app paths, see [SOLUTION_PACKS.md](SOLUTION_PACKS.md).
+
 ## Remote Health
 
 Use the remote health playbook when you want the deployment-side equivalent of
