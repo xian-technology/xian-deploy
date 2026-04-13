@@ -28,6 +28,7 @@
   loop:
     - "{{ xian_runtime_dir }}"
     - "{{ xian_monitoring_dir }}"
+    - "{{ xian_monitoring_dir }}/alertmanager"
     - "{{ xian_monitoring_dir }}/rules"
     - "{{ xian_monitoring_dir }}/grafana/provisioning/dashboards"
     - "{{ xian_monitoring_dir }}/grafana/provisioning/datasources"
@@ -89,7 +90,17 @@
     mode: "0644"
   loop:
     - xian-overview.json
+    - xian-bds-recovery.json
     - xian-vm-runtime.json
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_enable_monitoring | bool
+
+- name: Copy Alertmanager routing example
+  ansible.builtin.copy:
+    src: monitoring/alertmanager/alertmanager.example.yml
+    dest: "{{ xian_monitoring_dir }}/alertmanager/alertmanager.example.yml"
+    mode: "0644"
   when:
     - xian_runtime_action == "deploy"
     - xian_enable_monitoring | bool
