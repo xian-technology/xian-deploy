@@ -26,6 +26,59 @@ What it checks:
 Use `playbooks/smoke.yml` for a lighter post-deploy sanity check. Use
 `playbooks/health.yml` when you need a more complete remote diagnosis.
 
+## Monitoring And Alerts
+
+When monitoring is enabled, the runtime now stages:
+
+- the `Xian VM Runtime` Grafana dashboard
+- the `Xian BDS Recovery` Grafana dashboard
+- an example Alertmanager routing file at
+  `{{ xian_runtime_dir }}/monitoring/alertmanager/alertmanager.example.yml`
+
+The Alertmanager file is an example only. It is not started or wired
+automatically. Use it as the starting point when you want:
+
+- VM mismatch alerts routed to a high-priority receiver
+- BDS recovery alerts routed to an operator or storage/on-call receiver
+- infrastructure-critical alerts separated from warning-grade operational noise
+
+## VM Mismatch Alert Response
+
+Treat `XianVmShadowMismatchDetected` as a rollout-integrity alert.
+
+Recommended response:
+
+1. Open the `Xian VM Runtime` dashboard and identify the affected instance,
+   stage, contract, and mismatch fields.
+2. Inspect the latest mismatch context from Prometheus
+   (`xian_vm_shadow_last_mismatch_info`) and the local mismatch log at
+   `storage/logs/xian-vm-shadow-mismatches.jsonl`.
+3. If the node is in `xian_vm_v1` native-authority mode during rollout, move it
+   back to Python authority or pause the rollout until the mismatch is
+   explained.
+4. Capture the tx hash, block height, contract/function, and mismatch fields
+   before restarting or redeploying anything.
+
+Do not ignore repeated mismatches. A mismatch means the two engines disagreed on
+an authoritative state transition shape.
+
+## BDS Recovery Alert Response
+
+Use the `Xian BDS Recovery` dashboard when `XianBdsLagHigh`,
+`XianBdsMetricsRefreshFailed`, `XianBdsRecoveryStalled`, or
+`XianBdsAlertsPresent` fires.
+
+Recommended response:
+
+1. Confirm whether `indexed_height` is still moving toward `current_block_height`.
+2. Check `catching_up`, `worker_running`, `catchup_running`, `refresh_success`,
+   `db_ok`, spool pressure, and free disk space.
+3. If BDS is progressing and lag is shrinking, keep the node in observation.
+4. If catch-up is stalled or the database is degraded, export what you can and
+   restore from a known-good BDS snapshot or rebuild the BDS service cleanly.
+5. Re-run `ansible-playbook playbooks/health.yml` after recovery to confirm lag,
+   spool, and alert state are back to normal.
+
 ## Recovery Paths
 
 There are three distinct recovery/bootstrap paths:
