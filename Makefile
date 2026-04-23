@@ -2,6 +2,7 @@ ANSIBLE ?= uvx --from ansible-core ansible-playbook
 
 .PHONY: validate
 validate:
+	uvx --from ansible-core ansible-inventory -i inventories/example/hosts.yml --list >/dev/null
 	$(ANSIBLE) --syntax-check playbooks/bootstrap.yml
 	$(ANSIBLE) --syntax-check playbooks/push-home.yml
 	$(ANSIBLE) --syntax-check playbooks/deploy.yml
