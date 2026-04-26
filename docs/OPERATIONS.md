@@ -2,7 +2,7 @@
 
 This file records the concrete operator runbooks for `xian-deploy`.
 
-For the validated remote reference-app paths, see [SOLUTION_PACKS.md](SOLUTION_PACKS.md).
+For the validated remote reference-app paths, see [SOLUTIONS.md](SOLUTIONS.md).
 
 ## Remote Health
 

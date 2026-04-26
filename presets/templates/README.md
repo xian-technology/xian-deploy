@@ -16,5 +16,5 @@ Apply one of these presets with:
 ansible-playbook playbooks/deploy.yml -e @presets/templates/embedded-backend.yml
 ```
 
-Use the solution-pack runbook in `docs/SOLUTION_PACKS.md` to see which preset
-matches each reference-app flow.
+Use the solution runbook in `docs/SOLUTIONS.md` to see which preset matches
+each reference-app flow.

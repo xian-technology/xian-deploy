@@ -7,4 +7,4 @@ Start with:
 - `ARCHITECTURE.md`
 - `BACKLOG.md`
 - `OPERATIONS.md`
-- `SOLUTION_PACKS.md`
+- `SOLUTIONS.md`

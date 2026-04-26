@@ -10,7 +10,7 @@ Main areas:
 - `roles/xian_runtime/`: runtime rendering, remote node configuration, and Compose operations
 - `presets/`: reusable remote deployment postures aligned with the Xian template classes
 - `docs/OPERATIONS.md`: concrete remote runbooks for health and recovery
-- `docs/SOLUTION_PACKS.md`: remote starter-flow mapping for the validated reference apps
+- `docs/SOLUTIONS.md`: remote starter-flow mapping for the validated reference apps
 
 Dependency direction:
 

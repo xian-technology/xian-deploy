@@ -1,20 +1,20 @@
-# Solution Packs
+# Solutions
 
-This file mirrors the validated remote starter flows for the Xian solution
-packs into `xian-deploy`.
+This file mirrors the validated remote starter flows for Xian solutions into
+`xian-deploy`.
 
 Use it together with:
 
-- the packaged `xian-cli solution-pack starter ... --flow remote` output
+- the packaged `xian-cli solution starter ... --flow remote` output
 - the reusable runtime presets under `presets/templates/`
-- the example host layouts under `inventories/example/solution-packs/`
+- the example host layouts under `inventories/example/solutions/`
 
 ## Credits Ledger
 
 Remote posture:
 
 - template class: `embedded-backend`
-- inventory shape: `inventories/example/solution-packs/embedded-backend-hosts.yml`
+- inventory shape: `inventories/example/solutions/embedded-backend-hosts.yml`
 - runtime preset: `presets/templates/embedded-backend.yml`
 
 Recommended sequence:
@@ -28,14 +28,14 @@ ansible-playbook -i inventories/<your>/hosts.yml playbooks/health.yml \
   -e @presets/templates/embedded-backend.yml
 ```
 
-Use the same remote posture for the Workflow Backend pack.
+Use the same remote posture for the Workflow Backend solution.
 
 ## DEX
 
 Remote posture:
 
 - template class: `consortium-3`
-- inventory shape: `inventories/example/solution-packs/consortium-3-hosts.yml`
+- inventory shape: `inventories/example/solutions/consortium-3-hosts.yml`
 - validator preset: `presets/templates/consortium-validator.yml`
 - service-node preset: `presets/templates/consortium-service-node.yml`
 
@@ -48,17 +48,18 @@ ansible-playbook -i inventories/<your>/hosts.yml playbooks/deploy.yml
 ansible-playbook -i inventories/<your>/hosts.yml playbooks/health.yml
 ```
 
-After the network is healthy, deploy the pinned DEX bundle from the
-`xian-stack` checkout with `scripts/backend.py localnet-dex-bootstrap`, pointed
-at the service RPC and an explicit bootstrap wallet. Keep validators minimal;
-use the service node for indexed reads, DEX web inspection, and automation.
+After the network is healthy, follow the `dex-demo` solution flow and deploy
+the pinned DEX module with `xian module install dex --recipe production`,
+pointed at the service RPC and an explicit bootstrap wallet. Keep validators
+minimal; use the service node for indexed reads, DEX web inspection, and
+automation.
 
 ## Registry / Approval
 
 Remote posture:
 
 - template class: `consortium-3`
-- inventory shape: `inventories/example/solution-packs/consortium-3-hosts.yml`
+- inventory shape: `inventories/example/solutions/consortium-3-hosts.yml`
 - validator preset: `presets/templates/consortium-validator.yml`
 - service-node preset: `presets/templates/consortium-service-node.yml`
 
@@ -86,7 +87,7 @@ stay minimal.
 Remote posture:
 
 - template class: `consortium-3`
-- inventory shape: `inventories/example/solution-packs/consortium-3-hosts.yml`
+- inventory shape: `inventories/example/solutions/consortium-3-hosts.yml`
 - validator preset: `presets/templates/consortium-validator.yml`
 - service-node preset: `presets/templates/consortium-service-node.yml`
 
@@ -116,7 +117,7 @@ automation surfaces. Validators should stay focused on consensus work.
 Remote posture:
 
 - template class: `embedded-backend`
-- inventory shape: `inventories/example/solution-packs/embedded-backend-hosts.yml`
+- inventory shape: `inventories/example/solutions/embedded-backend-hosts.yml`
 - runtime preset: `presets/templates/embedded-backend.yml`
 
 Recommended sequence:

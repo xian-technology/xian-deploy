@@ -34,7 +34,7 @@ That flow assumes:
 - `roles/`: reusable deployment roles and runtime tasks
 - `inventories/`: example inventory and group variable layout
 - `presets/`: reusable runtime posture presets for remote starter flows
-- `docs/`: repo-local architecture, operations, and pack notes
+- `docs/`: repo-local architecture, operations, and solution notes
 
 ## Validation
 
@@ -48,7 +48,7 @@ make validate
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/BACKLOG.md](docs/BACKLOG.md)
 - [docs/OPERATIONS.md](docs/OPERATIONS.md)
-- [docs/SOLUTION_PACKS.md](docs/SOLUTION_PACKS.md)
+- [docs/SOLUTIONS.md](docs/SOLUTIONS.md)
 - [docs/README.md](docs/README.md)
 
 ## Common Playbooks
@@ -64,4 +64,4 @@ Use these playbooks directly when operating remote hosts:
 - `playbooks/restore-state-snapshot.yml`: restore an application-state snapshot
 
 For validated reference-app flows, pair those playbooks with the starter
-presets under `presets/templates/` as described in `docs/SOLUTION_PACKS.md`.
+presets under `presets/templates/` as described in `docs/SOLUTIONS.md`.
