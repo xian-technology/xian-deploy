@@ -30,6 +30,29 @@ ansible-playbook -i inventories/<your>/hosts.yml playbooks/health.yml \
 
 Use the same remote posture for the Workflow Backend pack.
 
+## DEX
+
+Remote posture:
+
+- template class: `consortium-3`
+- inventory shape: `inventories/example/solution-packs/consortium-3-hosts.yml`
+- validator preset: `presets/templates/consortium-validator.yml`
+- service-node preset: `presets/templates/consortium-service-node.yml`
+
+Recommended sequence:
+
+```bash
+ansible-playbook -i inventories/<your>/hosts.yml playbooks/bootstrap.yml
+ansible-playbook -i inventories/<your>/hosts.yml playbooks/push-home.yml
+ansible-playbook -i inventories/<your>/hosts.yml playbooks/deploy.yml
+ansible-playbook -i inventories/<your>/hosts.yml playbooks/health.yml
+```
+
+After the network is healthy, deploy the pinned DEX bundle from the
+`xian-stack` checkout with `scripts/backend.py localnet-dex-bootstrap`, pointed
+at the service RPC and an explicit bootstrap wallet. Keep validators minimal;
+use the service node for indexed reads, DEX web inspection, and automation.
+
 ## Registry / Approval
 
 Remote posture:
