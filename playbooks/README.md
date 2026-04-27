@@ -19,3 +19,15 @@
 3. `deploy.yml`
 4. `health.yml`
 5. `upgrade.yml` for later image rollouts
+
+```mermaid
+flowchart LR
+  Bootstrap["bootstrap.yml"] --> Home["push-home.yml"]
+  Bootstrap --> StateSync["bootstrap-state-sync.yml"]
+  Home --> Deploy["deploy.yml"]
+  StateSync --> Deploy
+  Deploy --> Health["health.yml"]
+  Health --> Smoke["smoke.yml"]
+  Health --> Upgrade["upgrade.yml"]
+  Upgrade --> Health
+```

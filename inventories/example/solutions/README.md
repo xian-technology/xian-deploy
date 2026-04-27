@@ -12,3 +12,12 @@
 - Keep real inventories, host vars, and secrets in a private deployment repo.
 - Apply runtime presets from `presets/templates/` in host vars or with `-e @...`
   as documented in `docs/SOLUTIONS.md`.
+
+```mermaid
+flowchart LR
+  SolutionFlow["Solution starter flow"] --> InventoryShape["Example inventory shape"]
+  InventoryShape --> PrivateRepo["Private deployment repo"]
+  Presets["presets/templates"] --> PrivateRepo
+  PrivateRepo --> Playbooks["xian-deploy playbooks"]
+  Playbooks --> Hosts["Remote hosts"]
+```

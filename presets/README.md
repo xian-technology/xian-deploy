@@ -12,3 +12,11 @@
   inventory, not in these public presets.
 - Treat presets as reusable posture defaults, not as replacements for a real
   inventory or host-specific deployment plan.
+
+```mermaid
+flowchart LR
+  Preset["Runtime preset"] --> Playbook["Ansible playbook"]
+  Inventory["Private inventory"] --> Playbook
+  Secrets["Private secrets"] --> Inventory
+  Playbook --> Host["Remote Xian host"]
+```

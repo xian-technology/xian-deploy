@@ -8,6 +8,20 @@ source on the target.
 It pairs with `xian-cli` (which prepares node homes) and with `xian-stack`
 (which publishes the runtime images this repo deploys).
 
+## Deployment Flow
+
+```mermaid
+flowchart LR
+  CLI["xian-cli prepares node home"] --> Archive["Node-home archive"]
+  Stack["xian-stack publishes images"] --> Images["Released xian-node images"]
+  Inventory["Inventory and group vars"] --> Playbooks["xian-deploy playbooks"]
+  Archive --> Playbooks
+  Images --> Playbooks
+  Playbooks --> Host["Remote Linux host"]
+  Host --> Runtime["Docker Compose runtime"]
+  Runtime --> Health["Health and smoke checks"]
+```
+
 ## Quick Start
 
 ```bash
