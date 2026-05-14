@@ -164,7 +164,6 @@
     --blocks-to-keep {{ xian_blocks_to_keep | quote }}
     --block-policy-mode {{ xian_block_policy_mode | quote }}
     --block-policy-interval {{ xian_block_policy_interval | quote }}
-    --tracer-mode {{ xian_tracer_mode | quote }}
     --metrics-host {{ xian_metrics_host | quote }}
     --metrics-port {{ xian_metrics_port | quote }}
     --metrics-bds-refresh-seconds {{ xian_metrics_bds_refresh_seconds | quote }}

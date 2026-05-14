@@ -42,7 +42,6 @@ xian_statesync_trust_height: 0
 xian_statesync_trust_hash: ""
 xian_statesync_trust_period: 168h0m0s
 
-xian_tracer_mode: python_line_v1
 xian_metrics_enabled: true
 xian_metrics_host: 0.0.0.0
 xian_metrics_port: 9108

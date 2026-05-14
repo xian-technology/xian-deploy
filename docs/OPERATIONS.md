@@ -48,16 +48,12 @@ Treat `XianVmShadowMismatchDetected` as a rollout-integrity alert.
 
 Recommended response:
 
-1. Open the `Xian VM Runtime` dashboard and identify the affected instance,
-   stage, contract, and mismatch fields.
-2. Inspect the latest mismatch context from Prometheus
-   (`xian_vm_shadow_last_mismatch_info`) and the local mismatch log at
-   `storage/logs/xian-vm-shadow-mismatches.jsonl`.
-3. If the node is in `xian_vm_v1` native-authority mode during rollout, move it
-   back to Python authority or pause the rollout until the mismatch is
-   explained.
-4. Capture the tx hash, block height, contract/function, and mismatch fields
-   before restarting or redeploying anything.
+1. Open the `Xian VM Runtime` dashboard and identify the affected instance and
+   runtime health fields.
+2. Inspect node logs and the local `xian-perf.json` snapshot for the same block
+   height.
+3. Capture the block height, app hash, and affected node identity before
+   restarting or redeploying anything.
 
 Do not ignore repeated mismatches. A mismatch means the two engines disagreed on
 an authoritative state transition shape.
