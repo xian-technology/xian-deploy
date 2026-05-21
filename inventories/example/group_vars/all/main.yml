@@ -30,6 +30,8 @@ xian_genesis_bundle: ""
 xian_genesis_time: ""
 xian_chain_id: ""
 xian_snapshot_url: ""
+xian_snapshot_signing_keys: []
+xian_snapshot_expected_chain_id: ""
 xian_validator_private_key_hex: ""
 
 xian_prometheus_enabled: true
@@ -37,6 +39,17 @@ xian_enable_pruning: false
 xian_blocks_to_keep: 100000
 xian_block_policy_mode: on_demand
 xian_block_policy_interval: 0s
+xian_transaction_trace_logging: false
+
+xian_app_log_level: INFO
+xian_app_log_json: false
+xian_app_log_rotation_hours: 1
+xian_app_log_retention_days: 7
+
+xian_simulation_enabled: true
+xian_simulation_max_concurrency: 2
+xian_simulation_timeout_ms: 3000
+xian_simulation_max_chi: 1000000
 
 xian_statesync_enable: false
 xian_statesync_rpc_servers: []
@@ -51,7 +64,13 @@ xian_metrics_bds_refresh_seconds: 5.0
 xian_parallel_execution_enabled: false
 xian_parallel_execution_workers: 4
 xian_parallel_execution_min_transactions: 8
+xian_parallel_execution_max_speculative_waves: 4
+xian_parallel_execution_min_wave_acceptance_ratio: 0.25
+xian_parallel_execution_low_acceptance_min_wave_size: 8
+xian_parallel_execution_warm_workers: true
+xian_parallel_execution_access_estimates_enabled: true
 xian_pending_nonce_reservation_ttl_seconds: 60.0
+xian_max_pending_nonces_per_sender: 128
 
 xian_bds_dsn: ""
 xian_bds_host: postgres
@@ -67,6 +86,8 @@ xian_bds_application_name: xian-bds
 xian_bds_queue_max_size: 128
 xian_bds_catchup_enabled: true
 xian_bds_catchup_poll_seconds: 1.0
+# Empty uses the topology-aware runtime default:
+# integrated -> http://127.0.0.1:26657, fidelity -> http://cometbft:26657.
 xian_bds_rpc_url: ""
 xian_bds_spool_warn_entries: 256
 xian_bds_spool_warn_bytes: 536870912
