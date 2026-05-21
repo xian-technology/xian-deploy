@@ -29,6 +29,7 @@ services:
       XIAN_PERF_RECENT_BLOCKS: {{ xian_perf_recent_blocks | to_json }}
       XIAN_PERF_OUTPUT_PATH: /root/.cometbft/xian-perf.json
 {% if xian_enable_bds %}
+      XIAN_BDS_DSN: {{ xian_bds_dsn | to_json }}
       XIAN_BDS_HOST: {{ xian_bds_host | to_json }}
       XIAN_BDS_PORT: {{ xian_bds_port | to_json }}
       XIAN_BDS_DATABASE: {{ xian_bds_database | to_json }}
@@ -37,7 +38,12 @@ services:
       XIAN_BDS_POOL_MIN_SIZE: {{ xian_bds_pool_min_size | to_json }}
       XIAN_BDS_POOL_MAX_SIZE: {{ xian_bds_pool_max_size | to_json }}
       XIAN_BDS_STATEMENT_TIMEOUT_MS: {{ xian_bds_statement_timeout_ms | to_json }}
+      XIAN_BDS_ACQUIRE_TIMEOUT_MS: {{ xian_bds_acquire_timeout_ms | to_json }}
       XIAN_BDS_APPLICATION_NAME: {{ xian_bds_application_name | to_json }}
+      XIAN_BDS_QUEUE_MAX_SIZE: {{ xian_bds_queue_max_size | to_json }}
+      XIAN_BDS_CATCHUP_ENABLED: {{ (1 if (xian_bds_catchup_enabled | bool) else 0) | to_json }}
+      XIAN_BDS_CATCHUP_POLL_SECONDS: {{ xian_bds_catchup_poll_seconds | to_json }}
+      XIAN_BDS_RPC_URL: {{ xian_effective_bds_rpc_url | to_json }}
       XIAN_BDS_SPOOL_DIR: {{ xian_bds_spool_dir | to_json }}
       XIAN_BDS_SPOOL_WARN_ENTRIES: {{ xian_bds_spool_warn_entries | to_json }}
       XIAN_BDS_SPOOL_WARN_BYTES: {{ xian_bds_spool_warn_bytes | to_json }}
@@ -98,6 +104,7 @@ services:
       XIAN_PERF_RECENT_BLOCKS: {{ xian_perf_recent_blocks | to_json }}
       XIAN_PERF_OUTPUT_PATH: /root/.cometbft/xian-perf.json
 {% if xian_enable_bds %}
+      XIAN_BDS_DSN: {{ xian_bds_dsn | to_json }}
       XIAN_BDS_HOST: {{ xian_bds_host | to_json }}
       XIAN_BDS_PORT: {{ xian_bds_port | to_json }}
       XIAN_BDS_DATABASE: {{ xian_bds_database | to_json }}
@@ -106,7 +113,12 @@ services:
       XIAN_BDS_POOL_MIN_SIZE: {{ xian_bds_pool_min_size | to_json }}
       XIAN_BDS_POOL_MAX_SIZE: {{ xian_bds_pool_max_size | to_json }}
       XIAN_BDS_STATEMENT_TIMEOUT_MS: {{ xian_bds_statement_timeout_ms | to_json }}
+      XIAN_BDS_ACQUIRE_TIMEOUT_MS: {{ xian_bds_acquire_timeout_ms | to_json }}
       XIAN_BDS_APPLICATION_NAME: {{ xian_bds_application_name | to_json }}
+      XIAN_BDS_QUEUE_MAX_SIZE: {{ xian_bds_queue_max_size | to_json }}
+      XIAN_BDS_CATCHUP_ENABLED: {{ (1 if (xian_bds_catchup_enabled | bool) else 0) | to_json }}
+      XIAN_BDS_CATCHUP_POLL_SECONDS: {{ xian_bds_catchup_poll_seconds | to_json }}
+      XIAN_BDS_RPC_URL: {{ xian_effective_bds_rpc_url | to_json }}
       XIAN_BDS_SPOOL_DIR: {{ xian_bds_spool_dir | to_json }}
       XIAN_BDS_SPOOL_WARN_ENTRIES: {{ xian_bds_spool_warn_entries | to_json }}
       XIAN_BDS_SPOOL_WARN_BYTES: {{ xian_bds_spool_warn_bytes | to_json }}
@@ -192,4 +204,3 @@ services:
     expose:
       - "5432"
 {% endif %}
-

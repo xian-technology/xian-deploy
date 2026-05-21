@@ -230,7 +230,7 @@
     --bds-acquire-timeout-ms {{ xian_bds_acquire_timeout_ms | quote }}
     --bds-application-name {{ xian_bds_application_name | quote }}
     --bds-queue-max-size {{ xian_bds_queue_max_size | quote }}
-    {{ '--bds-catchup-enabled' if xian_bds_catchup_enabled else '--no-bds-catchup-enabled' }}
+    {{ '--bds-catchup-enabled' if (xian_bds_catchup_enabled | bool) else '--no-bds-catchup-enabled' }}
     --bds-catchup-poll-seconds {{ xian_bds_catchup_poll_seconds | quote }}
     --bds-rpc-url {{ xian_effective_bds_rpc_url | quote }}
     --bds-spool-dir {{ (xian_bds_spool_dir if xian_enable_bds else '') | quote }}
