@@ -4,9 +4,9 @@
 - This folder contains reusable remote deployment presets that mirror the canonical Xian template classes.
 
 ## Presets
-- `embedded-backend.yml`: service-node posture for application-oriented remote deployments
+- `embedded-backend.yml`: BDS-backed posture for application-oriented remote deployments
 - `consortium-validator.yml`: validator posture for shared-state consortium deployments
-- `consortium-service-node.yml`: service-node posture for consortium deployments with BDS and monitoring
+- `consortium-bds-node.yml`: BDS node posture for consortium deployments with BDS and monitoring
 
 ## Usage
 
@@ -21,10 +21,10 @@ each reference-app flow.
 
 ```mermaid
 flowchart LR
-  Embedded["embedded-backend"] --> ServiceNode["Single service-node deployment"]
+  Embedded["embedded-backend"] --> BdsBackend["Single BDS-backed deployment"]
   Validator["consortium-validator"] --> ValidatorHost["Validator host"]
-  ConsortiumService["consortium-service-node"] --> IndexedHost["Service node with BDS and monitoring"]
+  ConsortiumBds["consortium-bds-node"] --> IndexedHost["BDS node with monitoring"]
   SolutionRunbook["docs/SOLUTIONS.md"] --> Embedded
   SolutionRunbook --> Validator
-  SolutionRunbook --> ConsortiumService
+  SolutionRunbook --> ConsortiumBds
 ```

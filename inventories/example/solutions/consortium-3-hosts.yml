@@ -11,7 +11,7 @@ all:
               ansible_user: deploy
             validator-3.example.org:
               ansible_user: deploy
-        xian_service_nodes:
+        xian_bds_nodes:
           hosts:
-            service-1.example.org:
+            bds-1.example.org:
               ansible_user: deploy

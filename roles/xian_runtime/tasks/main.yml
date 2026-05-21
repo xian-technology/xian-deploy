@@ -6,6 +6,24 @@
       - xian_runtime_action in ["deploy", "stop", "restart", "status"]
     fail_msg: Invalid xian_topology or xian_runtime_action
 
+- name: Validate parallel execution workers
+  ansible.builtin.assert:
+    that:
+      - not (xian_parallel_execution_enabled | bool) or (xian_parallel_execution_workers | int > 0)
+    fail_msg: parallel_execution_workers must be greater than zero when parallel_execution_enabled is true
+
+- name: Validate genesis source selection
+  ansible.builtin.assert:
+    that:
+      - not ((xian_genesis_source | length > 0) and (xian_genesis_bundle | length > 0))
+    fail_msg: pass either xian_genesis_source or xian_genesis_bundle, not both
+
+- name: Validate genesis bundle chain id
+  ansible.builtin.assert:
+    that:
+      - (xian_genesis_bundle | length == 0) or (xian_chain_id | length > 0)
+    fail_msg: xian_chain_id is required when xian_genesis_bundle is set
+
 - name: Select node images
   ansible.builtin.set_fact:
     xian_primary_image: >-
@@ -155,9 +173,8 @@
     --moniker {{ xian_moniker | quote }}
     {{ '--allow-cors' if xian_allow_cors else '--no-allow-cors' }}
     {{ '--prometheus' if xian_prometheus_enabled else '--no-prometheus' }}
-    {{ '--service-node' if xian_service_node else '--no-service-node' }}
+    {{ '--bds-enabled' if xian_enable_bds else '--no-bds-enabled' }}
     {{ '--enable-pruning' if xian_enable_pruning else '--no-enable-pruning' }}
-    {{ '--copy-genesis' if xian_copy_genesis else '--no-copy-genesis' }}
     {{ '--statesync-enable' if xian_statesync_enable else '--no-statesync-enable' }}
     {{ '--metrics-enabled' if xian_metrics_enabled else '--no-metrics-enabled' }}
     {{ '--parallel-execution-enabled' if xian_parallel_execution_enabled else '--no-parallel-execution-enabled' }}
@@ -179,14 +196,23 @@
     --bds-pool-min-size {{ xian_bds_pool_min_size | quote }}
     --bds-pool-max-size {{ xian_bds_pool_max_size | quote }}
     --bds-statement-timeout-ms {{ xian_bds_statement_timeout_ms | quote }}
+    --bds-acquire-timeout-ms {{ xian_bds_acquire_timeout_ms | quote }}
     --bds-application-name {{ xian_bds_application_name | quote }}
+    --bds-queue-max-size {{ xian_bds_queue_max_size | quote }}
+    {{ '--bds-catchup-enabled' if xian_bds_catchup_enabled else '--no-bds-catchup-enabled' }}
+    --bds-catchup-poll-seconds {{ xian_bds_catchup_poll_seconds | quote }}
+    --bds-rpc-url {{ xian_bds_rpc_url | quote }}
     --bds-spool-dir {{ (xian_bds_spool_dir if xian_enable_bds else '') | quote }}
     --bds-spool-warn-entries {{ xian_bds_spool_warn_entries | quote }}
     --bds-spool-warn-bytes {{ xian_bds_spool_warn_bytes | quote }}
     --bds-disk-free-warn-bytes {{ xian_bds_disk_free_warn_bytes | quote }}
-    --genesis-source {{ xian_genesis_source | quote }}
-    {% if xian_seed_node | length > 0 %} --seed-node {{ xian_seed_node | quote }} {% endif %}
-    {% if xian_seed_node_address | length > 0 %} --seed-node-address {{ xian_seed_node_address | quote }} {% endif %}
+    {% if xian_genesis_source | length > 0 %} --genesis-source {{ xian_genesis_source | quote }} {% endif %}
+    {% if xian_genesis_bundle | length > 0 %} --genesis-bundle {{ xian_genesis_bundle | quote }} {% endif %}
+    {% if xian_chain_id | length > 0 %} --chain-id {{ xian_chain_id | quote }} {% endif %}
+    {% if xian_genesis_time | length > 0 %} --genesis-time {{ xian_genesis_time | quote }} {% endif %}
+    {% for seed in xian_discover_seeds %} --discover-seed {{ seed | quote }} {% endfor %}
+    {% for seed in xian_p2p_seeds %} --seed {{ seed | quote }} {% endfor %}
+    {% for peer in xian_p2p_persistent_peers %} --persistent-peer {{ peer | quote }} {% endfor %}
     {% if xian_snapshot_url | length > 0 %} --snapshot-url {{ xian_snapshot_url | quote }} {% endif %}
     {% if xian_validator_private_key_hex | length > 0 %} --validator-privkey {{ xian_validator_private_key_hex | quote }} {% endif %}
     {% for server in xian_statesync_rpc_servers %} --statesync-rpc-server {{ server | quote }} {% endfor %}

@@ -1,10 +1,9 @@
 ---
-# Service-node posture for a small shared-state consortium network.
+# BDS node posture for a small shared-state consortium network.
 xian_topology: integrated
 xian_enable_dashboard: true
 xian_enable_bds: true
 xian_enable_monitoring: true
-xian_service_node: true
 
 xian_block_policy_mode: idle_interval
 xian_block_policy_interval: 10s

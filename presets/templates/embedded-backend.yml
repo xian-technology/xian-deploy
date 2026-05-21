@@ -1,10 +1,9 @@
 ---
-# Application-oriented remote service-node posture.
+# Application-oriented remote BDS posture.
 xian_topology: integrated
 xian_enable_dashboard: false
 xian_enable_bds: true
 xian_enable_monitoring: true
-xian_service_node: true
 
 xian_block_policy_mode: on_demand
 xian_block_policy_interval: 0s
