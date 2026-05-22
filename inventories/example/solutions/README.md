@@ -4,8 +4,8 @@
 - This folder contains example host layouts for the remote solution starter flows.
 
 ## Files
-- `embedded-backend-hosts.yml`: single-host service-node layout used by the Credits Ledger and Workflow Backend remote flows
-- `consortium-3-hosts.yml`: three-validator plus service-node layout used by the Registry / Approval and DEX Demo remote flows
+- `embedded-backend-hosts.yml`: single-host BDS-backed layout used by the Credits Ledger and Workflow Backend remote flows
+- `consortium-3-hosts.yml`: three-validator plus BDS-node layout used by the Registry / Approval and DEX Demo remote flows
 
 ## Notes
 - These are only structure references.

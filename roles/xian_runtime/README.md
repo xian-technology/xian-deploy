@@ -7,6 +7,11 @@ It is responsible for:
 - materializing the chosen topology on the host
 - applying the inventory-driven runtime configuration
 - starting and updating the released containers
+- exposing the same node-local runtime settings that `xian-configure-node`
+  writes, including logging, simulation, pending nonce, BDS, metrics, state
+  sync, and speculative parallel execution controls
+- deriving the BDS catch-up RPC URL from the selected topology when
+  `xian_bds_rpc_url` is left empty
 
 It is not responsible for:
 

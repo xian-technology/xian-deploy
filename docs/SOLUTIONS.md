@@ -37,7 +37,7 @@ Remote posture:
 - template class: `consortium-3`
 - inventory shape: `inventories/example/solutions/consortium-3-hosts.yml`
 - validator preset: `presets/templates/consortium-validator.yml`
-- service-node preset: `presets/templates/consortium-service-node.yml`
+- BDS node preset: `presets/templates/consortium-bds-node.yml`
 
 Recommended sequence:
 
@@ -51,7 +51,7 @@ ansible-playbook -i inventories/<your>/hosts.yml playbooks/health.yml
 After the network is healthy, follow the `dex-demo` solution flow and deploy
 the pinned DEX module with `xian module install dex --recipe production`,
 pointed at the service RPC and an explicit bootstrap wallet. Keep validators
-minimal; use the service node for indexed reads, DEX web inspection, and
+minimal; use the BDS node for indexed reads, DEX web inspection, and
 automation.
 
 ## Registry / Approval
@@ -61,14 +61,14 @@ Remote posture:
 - template class: `consortium-3`
 - inventory shape: `inventories/example/solutions/consortium-3-hosts.yml`
 - validator preset: `presets/templates/consortium-validator.yml`
-- service-node preset: `presets/templates/consortium-service-node.yml`
+- BDS node preset: `presets/templates/consortium-bds-node.yml`
 
 Recommended host-variable split:
 
 - validator hosts:
   `consortium-validator.yml`
-- service-node host:
-  `consortium-service-node.yml`
+- BDS node host:
+  `consortium-bds-node.yml`
 
 Recommended sequence:
 
@@ -79,8 +79,8 @@ ansible-playbook -i inventories/<your>/hosts.yml playbooks/deploy.yml
 ansible-playbook -i inventories/<your>/hosts.yml playbooks/health.yml
 ```
 
-The service node should carry the BDS and monitoring posture. Validators should
-stay minimal.
+The BDS node should carry the indexed database and monitoring posture.
+Validators should stay minimal.
 
 ## Stable Protocol
 
@@ -89,14 +89,14 @@ Remote posture:
 - template class: `consortium-3`
 - inventory shape: `inventories/example/solutions/consortium-3-hosts.yml`
 - validator preset: `presets/templates/consortium-validator.yml`
-- service-node preset: `presets/templates/consortium-service-node.yml`
+- BDS node preset: `presets/templates/consortium-bds-node.yml`
 
 Recommended host-variable split:
 
 - validator hosts:
   `consortium-validator.yml`
-- service-node host:
-  `consortium-service-node.yml`
+- BDS node host:
+  `consortium-bds-node.yml`
 
 Recommended sequence:
 
@@ -108,8 +108,8 @@ ansible-playbook -i inventories/<your>/hosts.yml playbooks/health.yml
 ```
 
 After the network is healthy, run the canonical protocol bootstrap from the
-`xian-stable-protocol` checkout against the deployed RPC. Keep the service node
-responsible for BDS-backed inspection, monitoring, and any risk-dashboard or
+`xian-stable-protocol` checkout against the deployed RPC. Keep the BDS node
+responsible for indexed inspection, monitoring, and any risk-dashboard or
 automation surfaces. Validators should stay focused on consensus work.
 
 ## Workflow Backend

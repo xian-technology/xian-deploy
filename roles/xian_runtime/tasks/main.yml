@@ -6,6 +6,40 @@
       - xian_runtime_action in ["deploy", "stop", "restart", "status"]
     fail_msg: Invalid xian_topology or xian_runtime_action
 
+- name: Validate parallel execution workers
+  ansible.builtin.assert:
+    that:
+      - not (xian_parallel_execution_enabled | bool) or (xian_parallel_execution_workers | int > 0)
+    fail_msg: parallel_execution_workers must be greater than zero when parallel_execution_enabled is true
+
+- name: Validate genesis source selection
+  ansible.builtin.assert:
+    that:
+      - not ((xian_genesis_source | length > 0) and (xian_genesis_bundle | length > 0))
+    fail_msg: pass either xian_genesis_source or xian_genesis_bundle, not both
+
+- name: Validate genesis bundle chain id
+  ansible.builtin.assert:
+    that:
+      - (xian_genesis_bundle | length == 0) or (xian_chain_id | length > 0)
+    fail_msg: xian_chain_id is required when xian_genesis_bundle is set
+
+- name: Resolve BDS RPC URL
+  ansible.builtin.set_fact:
+    xian_effective_bds_rpc_url: >-
+      {{
+        '' if not (xian_enable_bds | bool)
+        else (
+          xian_bds_rpc_url
+          if (xian_bds_rpc_url | length > 0)
+          else (
+            'http://127.0.0.1:26657'
+            if xian_topology == 'integrated'
+            else 'http://cometbft:26657'
+          )
+        )
+      }}
+
 - name: Select node images
   ansible.builtin.set_fact:
     xian_primary_image: >-
@@ -155,21 +189,35 @@
     --moniker {{ xian_moniker | quote }}
     {{ '--allow-cors' if xian_allow_cors else '--no-allow-cors' }}
     {{ '--prometheus' if xian_prometheus_enabled else '--no-prometheus' }}
-    {{ '--service-node' if xian_service_node else '--no-service-node' }}
+    {{ '--bds-enabled' if xian_enable_bds else '--no-bds-enabled' }}
     {{ '--enable-pruning' if xian_enable_pruning else '--no-enable-pruning' }}
-    {{ '--copy-genesis' if xian_copy_genesis else '--no-copy-genesis' }}
     {{ '--statesync-enable' if xian_statesync_enable else '--no-statesync-enable' }}
     {{ '--metrics-enabled' if xian_metrics_enabled else '--no-metrics-enabled' }}
+    {{ '--transaction-trace-logging' if xian_transaction_trace_logging else '--no-transaction-trace-logging' }}
+    {{ '--app-log-json' if xian_app_log_json else '--no-app-log-json' }}
+    {{ '--simulation-enabled' if xian_simulation_enabled else '--no-simulation-enabled' }}
     {{ '--parallel-execution-enabled' if xian_parallel_execution_enabled else '--no-parallel-execution-enabled' }}
+    {{ '--parallel-execution-warm-workers' if xian_parallel_execution_warm_workers else '--no-parallel-execution-warm-workers' }}
+    {{ '--parallel-execution-access-estimates-enabled' if xian_parallel_execution_access_estimates_enabled else '--no-parallel-execution-access-estimates-enabled' }}
     --blocks-to-keep {{ xian_blocks_to_keep | quote }}
     --block-policy-mode {{ xian_block_policy_mode | quote }}
     --block-policy-interval {{ xian_block_policy_interval | quote }}
+    --app-log-level {{ xian_app_log_level | quote }}
+    --app-log-rotation-hours {{ xian_app_log_rotation_hours | quote }}
+    --app-log-retention-days {{ xian_app_log_retention_days | quote }}
+    --simulation-max-concurrency {{ xian_simulation_max_concurrency | quote }}
+    --simulation-timeout-ms {{ xian_simulation_timeout_ms | quote }}
+    --simulation-max-chi {{ xian_simulation_max_chi | quote }}
     --metrics-host {{ xian_metrics_host | quote }}
     --metrics-port {{ xian_metrics_port | quote }}
     --metrics-bds-refresh-seconds {{ xian_metrics_bds_refresh_seconds | quote }}
     --parallel-execution-workers {{ xian_parallel_execution_workers | quote }}
     --parallel-execution-min-transactions {{ xian_parallel_execution_min_transactions | quote }}
+    --parallel-execution-max-speculative-waves {{ xian_parallel_execution_max_speculative_waves | quote }}
+    --parallel-execution-min-wave-acceptance-ratio {{ xian_parallel_execution_min_wave_acceptance_ratio | quote }}
+    --parallel-execution-low-acceptance-min-wave-size {{ xian_parallel_execution_low_acceptance_min_wave_size | quote }}
     --pending-nonce-reservation-ttl-seconds {{ xian_pending_nonce_reservation_ttl_seconds | quote }}
+    --max-pending-nonces-per-sender {{ xian_max_pending_nonces_per_sender | quote }}
     --bds-dsn {{ xian_bds_dsn | quote }}
     --bds-host {{ (xian_bds_host if xian_enable_bds else '') | quote }}
     --bds-port {{ xian_bds_port | quote }}
@@ -179,15 +227,26 @@
     --bds-pool-min-size {{ xian_bds_pool_min_size | quote }}
     --bds-pool-max-size {{ xian_bds_pool_max_size | quote }}
     --bds-statement-timeout-ms {{ xian_bds_statement_timeout_ms | quote }}
+    --bds-acquire-timeout-ms {{ xian_bds_acquire_timeout_ms | quote }}
     --bds-application-name {{ xian_bds_application_name | quote }}
+    --bds-queue-max-size {{ xian_bds_queue_max_size | quote }}
+    {{ '--bds-catchup-enabled' if (xian_bds_catchup_enabled | bool) else '--no-bds-catchup-enabled' }}
+    --bds-catchup-poll-seconds {{ xian_bds_catchup_poll_seconds | quote }}
+    --bds-rpc-url {{ xian_effective_bds_rpc_url | quote }}
     --bds-spool-dir {{ (xian_bds_spool_dir if xian_enable_bds else '') | quote }}
     --bds-spool-warn-entries {{ xian_bds_spool_warn_entries | quote }}
     --bds-spool-warn-bytes {{ xian_bds_spool_warn_bytes | quote }}
     --bds-disk-free-warn-bytes {{ xian_bds_disk_free_warn_bytes | quote }}
-    --genesis-source {{ xian_genesis_source | quote }}
-    {% if xian_seed_node | length > 0 %} --seed-node {{ xian_seed_node | quote }} {% endif %}
-    {% if xian_seed_node_address | length > 0 %} --seed-node-address {{ xian_seed_node_address | quote }} {% endif %}
+    {% if xian_genesis_source | length > 0 %} --genesis-source {{ xian_genesis_source | quote }} {% endif %}
+    {% if xian_genesis_bundle | length > 0 %} --genesis-bundle {{ xian_genesis_bundle | quote }} {% endif %}
+    {% if xian_chain_id | length > 0 %} --chain-id {{ xian_chain_id | quote }} {% endif %}
+    {% if xian_genesis_time | length > 0 %} --genesis-time {{ xian_genesis_time | quote }} {% endif %}
+    {% for seed in xian_discover_seeds %} --discover-seed {{ seed | quote }} {% endfor %}
+    {% for seed in xian_p2p_seeds %} --seed {{ seed | quote }} {% endfor %}
+    {% for peer in xian_p2p_persistent_peers %} --persistent-peer {{ peer | quote }} {% endfor %}
     {% if xian_snapshot_url | length > 0 %} --snapshot-url {{ xian_snapshot_url | quote }} {% endif %}
+    {% if xian_snapshot_expected_chain_id | length > 0 %} --snapshot-expected-chain-id {{ xian_snapshot_expected_chain_id | quote }} {% endif %}
+    {% for key in xian_snapshot_signing_keys %} --snapshot-signing-key {{ key | quote }} {% endfor %}
     {% if xian_validator_private_key_hex | length > 0 %} --validator-privkey {{ xian_validator_private_key_hex | quote }} {% endif %}
     {% for server in xian_statesync_rpc_servers %} --statesync-rpc-server {{ server | quote }} {% endfor %}
     {% if xian_statesync_enable %}
