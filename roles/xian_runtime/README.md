@@ -5,7 +5,7 @@ This role owns the remote Xian node runtime deployment on a target host.
 It is responsible for:
 
 - materializing the chosen topology on the host
-- applying the inventory-driven runtime configuration
+- applying the runtime facts derived from the canonical node profile
 - starting and updating the released containers
 - exposing the same node-local runtime settings that `xian-configure-node`
   writes, including logging, simulation, pending nonce, BDS, metrics, state
@@ -15,6 +15,7 @@ It is responsible for:
 
 It is not responsible for:
 
+- loading or validating the node profile; run `xian_profile` first
 - creating node-home archives
 - generating validator keys
 - defining runtime image contents

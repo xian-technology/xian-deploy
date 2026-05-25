@@ -12,18 +12,20 @@
       http://127.0.0.1:{{ xian_rpc_port }}/abci_query?path=%22%2Fbds_status%22
     xian_health_expected_services: >-
       {{
-        (['abci'] if xian_topology == 'integrated' else ['abci-app', 'cometbft'])
-        + (['dashboard'] if xian_enable_dashboard | bool else [])
-        + (['postgres'] if xian_enable_bds | bool else [])
-        + (['prometheus', 'grafana'] if xian_enable_monitoring | bool else [])
+        (['abci'] if xian_deploy_topology == 'integrated' else ['abci-app', 'cometbft'])
+        + (['dashboard'] if xian_dashboard_enabled | bool else [])
+        + (['postgres'] if xian_bds_enabled | bool else [])
+        + (['prometheus', 'grafana'] if xian_monitoring_enabled | bool else [])
       }}
+  roles:
+    - xian_profile
   tasks:
     - name: Collect running compose services
       ansible.builtin.shell: >-
         docker compose
         -p {{ xian_project_name | quote }}
         -f {{ xian_runtime_dir | quote }}/docker-compose.yml
-        {% if xian_enable_monitoring | bool %}
+        {% if xian_monitoring_enabled | bool %}
         -f {{ xian_runtime_dir | quote }}/docker-compose.monitoring.yml
         {% endif %}
         ps --services --status running
@@ -66,7 +68,7 @@
       register: xian_health_dashboard
       changed_when: false
       failed_when: false
-      when: xian_enable_dashboard | bool
+      when: xian_dashboard_enabled | bool
 
     - name: Check Prometheus endpoint
       ansible.builtin.uri:
@@ -75,7 +77,7 @@
       register: xian_health_prometheus
       changed_when: false
       failed_when: false
-      when: xian_enable_monitoring | bool
+      when: xian_monitoring_enabled | bool
 
     - name: Check Grafana endpoint
       ansible.builtin.uri:
@@ -84,7 +86,7 @@
       register: xian_health_grafana
       changed_when: false
       failed_when: false
-      when: xian_enable_monitoring | bool
+      when: xian_monitoring_enabled | bool
 
     - name: Query BDS status through ABCI
       ansible.builtin.uri:
@@ -93,7 +95,7 @@
       register: xian_health_bds_raw
       changed_when: false
       failed_when: false
-      when: xian_enable_bds | bool
+      when: xian_bds_enabled | bool
 
     - name: Decode BDS status payload
       ansible.builtin.set_fact:
@@ -104,7 +106,7 @@
             | from_json
           }}
       when:
-        - xian_enable_bds | bool
+        - xian_bds_enabled | bool
         - not (xian_health_bds_raw.failed | default(false))
         - (xian_health_bds_raw.json.result.response.value | default('')) | length > 0
 
@@ -166,7 +168,7 @@
 
     - name: Read remote disk health summary
       ansible.builtin.shell: >-
-        python3 - <<'PY' {{ xian_deploy_root | quote }} {{ xian_bds_spool_dir | quote }} {{ (1 if xian_enable_bds else 0) | quote }} {{ xian_bds_disk_free_warn_bytes | quote }}
+        python3 - <<'PY' {{ xian_deploy_root | quote }} {{ xian_bds_spool_dir | quote }} {{ (1 if xian_bds_enabled else 0) | quote }} {{ xian_bds_disk_free_warn_bytes | quote }}
         import json
         import shutil
         import sys
@@ -218,10 +220,10 @@
             {% set rpc_ok = not (xian_health_rpc.failed | default(false)) %}
             {% set degraded = (
               (xian_metrics_enabled | bool and (xian_health_xian_metrics is defined) and (xian_health_xian_metrics.failed | default(false)))
-              or (xian_enable_dashboard | bool and (xian_health_dashboard is defined) and (xian_health_dashboard.failed | default(false)))
-              or (xian_enable_monitoring | bool and (xian_health_prometheus is defined) and (xian_health_prometheus.failed | default(false)))
-              or (xian_enable_monitoring | bool and (xian_health_grafana is defined) and (xian_health_grafana.failed | default(false)))
-              or (xian_enable_bds | bool and (
+              or (xian_dashboard_enabled | bool and (xian_health_dashboard is defined) and (xian_health_dashboard.failed | default(false)))
+              or (xian_monitoring_enabled | bool and (xian_health_prometheus is defined) and (xian_health_prometheus.failed | default(false)))
+              or (xian_monitoring_enabled | bool and (xian_health_grafana is defined) and (xian_health_grafana.failed | default(false)))
+              or (xian_bds_enabled | bool and (
                 (xian_health_bds_raw is defined and (xian_health_bds_raw.failed | default(false)))
                 or (xian_health_bds is defined and (xian_health_bds.db_status | default('error')) != 'ok')
                 or (xian_health_bds is defined and not (xian_health_bds.worker_running | default(false)))
@@ -230,7 +232,7 @@
               or ((xian_health_disk.stdout | default('') | length > 0) and (((xian_health_disk.stdout | from_json).alerts | default([])) | length > 0))
             ) %}
             {% if not backend_ok or not rpc_ok %}stopped{% elif degraded %}degraded{% else %}healthy{% endif %}
-          topology: "{{ xian_topology }}"
+          topology: "{{ xian_deploy_topology }}"
           expected_services: "{{ xian_health_expected_services }}"
           running_services: "{{ xian_running_services }}"
           effective_snapshot_bootstrap:
@@ -258,21 +260,21 @@
                 url: "{{ xian_health_xian_metrics_url }}"
                 error: "{{ xian_health_xian_metrics.msg | default('') if (xian_health_xian_metrics is defined and (xian_health_xian_metrics.failed | default(false))) else '' }}"
             dashboard:
-              ok: "{{ (not xian_enable_dashboard | bool) or not (xian_health_dashboard.failed | default(false)) }}"
+              ok: "{{ (not xian_dashboard_enabled | bool) or not (xian_health_dashboard.failed | default(false)) }}"
               detail:
-                enabled: "{{ xian_enable_dashboard | bool }}"
+                enabled: "{{ xian_dashboard_enabled | bool }}"
                 url: "{{ xian_health_dashboard_url }}"
                 error: "{{ xian_health_dashboard.msg | default('') if (xian_health_dashboard is defined and (xian_health_dashboard.failed | default(false))) else '' }}"
             prometheus:
-              ok: "{{ (not xian_enable_monitoring | bool) or not (xian_health_prometheus.failed | default(false)) }}"
+              ok: "{{ (not xian_monitoring_enabled | bool) or not (xian_health_prometheus.failed | default(false)) }}"
               detail:
-                enabled: "{{ xian_enable_monitoring | bool }}"
+                enabled: "{{ xian_monitoring_enabled | bool }}"
                 url: "{{ xian_health_prometheus_url }}"
                 error: "{{ xian_health_prometheus.msg | default('') if (xian_health_prometheus is defined and (xian_health_prometheus.failed | default(false))) else '' }}"
             grafana:
-              ok: "{{ (not xian_enable_monitoring | bool) or not (xian_health_grafana.failed | default(false)) }}"
+              ok: "{{ (not xian_monitoring_enabled | bool) or not (xian_health_grafana.failed | default(false)) }}"
               detail:
-                enabled: "{{ xian_enable_monitoring | bool }}"
+                enabled: "{{ xian_monitoring_enabled | bool }}"
                 url: "{{ xian_health_grafana_url }}"
                 error: "{{ xian_health_grafana.msg | default('') if (xian_health_grafana is defined and (xian_health_grafana.failed | default(false))) else '' }}"
             statesync:
@@ -294,7 +296,7 @@
             bds:
               ok: >-
                 {{
-                  (not xian_enable_bds | bool)
+                  (not xian_bds_enabled | bool)
                   or (
                     (xian_health_bds_raw is defined)
                     and not (xian_health_bds_raw.failed | default(false))
@@ -306,7 +308,7 @@
               detail: >-
                 {{
                   {
-                    'enabled': xian_enable_bds | bool,
+                    'enabled': xian_bds_enabled | bool,
                     'url': xian_health_bds_status_url,
                     'error': (
                       xian_health_bds_raw.msg | default('')

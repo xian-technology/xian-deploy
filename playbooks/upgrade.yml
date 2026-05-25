@@ -4,7 +4,7 @@
   become: true
   serial: 1
   roles:
+    - xian_profile
     - role: xian_runtime
       vars:
         xian_runtime_action: deploy
-

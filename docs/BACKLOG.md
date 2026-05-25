@@ -8,4 +8,4 @@ Current themes:
 - secrets handling patterns via `ansible-vault` or `sops`
 - host hardening roles
 - `ansible-lint` in CI
-- deeper solution-aware remote automation beyond the current preset and runbook layer
+- deeper profile-aware remote automation on top of profile-driven deploy flows

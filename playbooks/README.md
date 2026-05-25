@@ -22,6 +22,7 @@
 
 ```mermaid
 flowchart LR
+  Profile["xian_node_profile"] --> Deploy["deploy.yml"]
   Bootstrap["bootstrap.yml"] --> Home["push-home.yml"]
   Bootstrap --> StateSync["bootstrap-state-sync.yml"]
   Home --> Deploy["deploy.yml"]

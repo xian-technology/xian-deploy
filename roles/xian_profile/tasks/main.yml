@@ -1,0 +1,310 @@
+---
+- name: Validate node profile path
+  ansible.builtin.assert:
+    that:
+      - xian_node_profile is defined
+      - xian_node_profile is string
+      - xian_node_profile | length > 0
+    fail_msg: >-
+      xian_node_profile must point to a canonical node profile JSON file on
+      the control machine.
+
+- name: Load node profile
+  ansible.builtin.set_fact:
+    xian_profile: "{{ lookup('ansible.builtin.file', xian_node_profile) | from_json }}"
+
+- name: Validate canonical node profile shape
+  ansible.builtin.assert:
+    that:
+      - "xian_profile is mapping"
+      - "(xian_profile.get('schema_version') | int) == 1"
+      - "xian_profile.get('name') is string"
+      - "xian_profile.get('network') is string"
+      - "xian_profile.get('moniker') is string"
+      - "xian_profile.get('p2p') is mapping"
+      - "'services' in xian_profile"
+      - "xian_profile.get('services') is mapping"
+      - "'bds' in (xian_profile.get('services') | default({}, true))"
+      - "(xian_profile.get('services') | default({}, true)).get('bds', {}) is mapping"
+      - "'dashboard' in (xian_profile.get('services') | default({}, true))"
+      - "(xian_profile.get('services') | default({}, true)).get('dashboard', {}) is mapping"
+      - "'monitoring' in (xian_profile.get('services') | default({}, true))"
+      - "(xian_profile.get('services') | default({}, true)).get('monitoring', {}) is mapping"
+      - "'advanced' in xian_profile"
+      - "xian_profile.get('advanced') is mapping"
+      - "'cometbft' in (xian_profile.get('advanced') | default({}, true))"
+      - "(xian_profile.get('advanced') | default({}, true)).get('cometbft', {}) is mapping"
+      - "'statesync' in (xian_profile.get('advanced') | default({}, true))"
+      - "(xian_profile.get('advanced') | default({}, true)).get('statesync', {}) is mapping"
+      - "'metrics' in (xian_profile.get('advanced') | default({}, true))"
+      - "(xian_profile.get('advanced') | default({}, true)).get('metrics', {}) is mapping"
+      - "'pending_nonce' in (xian_profile.get('advanced') | default({}, true))"
+      - "(xian_profile.get('advanced') | default({}, true)).get('pending_nonce', {}) is mapping"
+      - "'parallel_execution' in (xian_profile.get('advanced') | default({}, true))"
+      - "(xian_profile.get('advanced') | default({}, true)).get('parallel_execution', {}) is mapping"
+      - "xian_profile.get('node_image_mode') == 'registry'"
+      - "(xian_profile.get('node_integrated_image') | default('', true) | length) > 0"
+      - "(xian_profile.get('node_split_image') | default('', true) | length) > 0"
+      - "xian_profile.get('block_policy_mode') in ['on_demand', 'idle_interval', 'periodic']"
+      - "xian_profile.get('operator_profile') in ['local_development', 'indexed_development', 'shared_network']"
+      - "xian_profile.get('monitoring_profile') in ['none', 'local_stack', 'bds']"
+    fail_msg: >-
+      Remote deployment now uses node profiles directly. Provide a schema v1
+      profile generated with node_image_mode=registry and complete
+      services/advanced runtime sections.
+
+- name: Extract node profile sections
+  ansible.builtin.set_fact:
+    xian_profile_p2p: "{{ xian_profile.get('p2p', {}) }}"
+    xian_profile_genesis: "{{ xian_profile.get('genesis') | default({}, true) }}"
+    xian_profile_services: "{{ xian_profile.get('services', {}) }}"
+    xian_profile_advanced: "{{ xian_profile.get('advanced', {}) }}"
+
+- name: Extract service and advanced profile sections
+  ansible.builtin.set_fact:
+    xian_profile_bds: "{{ xian_profile_services.get('bds', {}) }}"
+    xian_profile_dashboard: "{{ xian_profile_services.get('dashboard', {}) }}"
+    xian_profile_monitoring: "{{ xian_profile_services.get('monitoring', {}) }}"
+    xian_profile_cometbft: "{{ xian_profile_advanced.get('cometbft', {}) }}"
+    xian_profile_statesync: "{{ xian_profile_advanced.get('statesync', {}) }}"
+    xian_profile_metrics: "{{ xian_profile_advanced.get('metrics', {}) }}"
+    xian_profile_pending_nonce: "{{ xian_profile_advanced.get('pending_nonce', {}) }}"
+    xian_profile_parallel_execution: "{{ xian_profile_advanced.get('parallel_execution', {}) }}"
+
+- name: Validate canonical node profile keys and deploy boundary
+  vars:
+    xian_profile_allowed_top_level_keys:
+      - schema_version
+      - name
+      - network
+      - moniker
+      - validator_key_ref
+      - node_image_mode
+      - node_integrated_image
+      - node_split_image
+      - node_release_manifest
+      - stack_dir
+      - p2p
+      - genesis
+      - snapshot_url
+      - snapshot_signing_keys
+      - home
+      - pruning_enabled
+      - blocks_to_keep
+      - block_policy_mode
+      - block_policy_interval
+      - transaction_trace_logging
+      - app_log_level
+      - app_log_json
+      - app_log_rotation_hours
+      - app_log_retention_days
+      - simulation_enabled
+      - simulation_max_concurrency
+      - simulation_timeout_ms
+      - simulation_max_chi
+      - parallel_execution_enabled
+      - parallel_execution_workers
+      - parallel_execution_min_transactions
+      - operator_profile
+      - monitoring_profile
+      - services
+      - advanced
+    xian_profile_allowed_p2p_keys:
+      - seeds
+      - persistent_peers
+    xian_profile_allowed_service_keys:
+      - bds
+      - dashboard
+      - monitoring
+      - intentkit
+      - dex_automation
+      - shielded_relayer
+    xian_profile_allowed_bds_keys:
+      - enabled
+      - dsn
+      - host
+      - port
+      - database
+      - user
+      - password
+      - pool_min_size
+      - pool_max_size
+      - statement_timeout_ms
+      - acquire_timeout_ms
+      - application_name
+      - queue_max_size
+      - catchup_enabled
+      - catchup_poll_seconds
+      - rpc_url
+      - spool_dir
+      - spool_warn_entries
+      - spool_warn_bytes
+      - disk_free_warn_bytes
+    xian_profile_allowed_dashboard_keys:
+      - enabled
+      - host
+      - port
+    xian_profile_allowed_monitoring_keys:
+      - enabled
+    xian_profile_allowed_intentkit_keys:
+      - enabled
+      - network_id
+      - host
+      - port
+      - api_port
+    xian_profile_allowed_dex_automation_keys:
+      - enabled
+      - host
+      - port
+      - config
+    xian_profile_allowed_shielded_relayer_keys:
+      - enabled
+      - host
+      - port
+    xian_profile_allowed_advanced_keys:
+      - cometbft
+      - statesync
+      - metrics
+      - pending_nonce
+      - parallel_execution
+    xian_profile_allowed_cometbft_keys:
+      - allow_cors
+      - prometheus
+      - proxy_app
+    xian_profile_allowed_statesync_keys:
+      - enabled
+      - rpc_servers
+      - trust_height
+      - trust_hash
+      - trust_period
+    xian_profile_allowed_metrics_keys:
+      - enabled
+      - host
+      - port
+      - bds_refresh_seconds
+    xian_profile_allowed_pending_nonce_keys:
+      - reservation_ttl_seconds
+      - max_per_sender
+    xian_profile_allowed_parallel_execution_keys:
+      - max_speculative_waves
+      - min_wave_acceptance_ratio
+      - low_acceptance_min_wave_size
+      - warm_workers
+      - access_estimates_enabled
+  ansible.builtin.assert:
+    that:
+      - "(xian_profile.keys() | list | difference(xian_profile_allowed_top_level_keys) | length) == 0"
+      - "(xian_profile_p2p.keys() | list | difference(xian_profile_allowed_p2p_keys) | length) == 0"
+      - "(xian_profile_services.keys() | list | difference(xian_profile_allowed_service_keys) | length) == 0"
+      - "(xian_profile_bds.keys() | list | difference(xian_profile_allowed_bds_keys) | length) == 0"
+      - "(xian_profile_dashboard.keys() | list | difference(xian_profile_allowed_dashboard_keys) | length) == 0"
+      - "(xian_profile_monitoring.keys() | list | difference(xian_profile_allowed_monitoring_keys) | length) == 0"
+      - "((xian_profile_services.get('intentkit', {}) | default({}, true)).keys() | list | difference(xian_profile_allowed_intentkit_keys) | length) == 0"
+      - "((xian_profile_services.get('dex_automation', {}) | default({}, true)).keys() | list | difference(xian_profile_allowed_dex_automation_keys) | length) == 0"
+      - "((xian_profile_services.get('shielded_relayer', {}) | default({}, true)).keys() | list | difference(xian_profile_allowed_shielded_relayer_keys) | length) == 0"
+      - "(xian_profile_advanced.keys() | list | difference(xian_profile_allowed_advanced_keys) | length) == 0"
+      - "((xian_profile_cometbft | default({}, true)).keys() | list | difference(xian_profile_allowed_cometbft_keys) | length) == 0"
+      - "((xian_profile_statesync | default({}, true)).keys() | list | difference(xian_profile_allowed_statesync_keys) | length) == 0"
+      - "((xian_profile_metrics | default({}, true)).keys() | list | difference(xian_profile_allowed_metrics_keys) | length) == 0"
+      - "((xian_profile_pending_nonce | default({}, true)).keys() | list | difference(xian_profile_allowed_pending_nonce_keys) | length) == 0"
+      - "((xian_profile_parallel_execution | default({}, true)).keys() | list | difference(xian_profile_allowed_parallel_execution_keys) | length) == 0"
+      - "not ((xian_profile_services.get('intentkit', {}).get('enabled', false) | bool) or (xian_profile_services.get('dex_automation', {}).get('enabled', false) | bool) or (xian_profile_services.get('shielded_relayer', {}).get('enabled', false) | bool))"
+      - "(xian_profile_bds.get('dsn') | default('', true) | length) == 0"
+      - "(xian_profile_bds.get('host') | default('', true) | length) == 0"
+      - "(xian_profile_bds.get('user') | default('', true) | length) == 0"
+      - "(xian_profile_bds.get('password') | default('', true) | length) == 0"
+      - "(xian_profile_bds.get('rpc_url') | default('', true) | length) == 0"
+      - "(xian_profile_bds.get('spool_dir') | default('', true) | length) == 0"
+      - "(xian_profile_bds.get('database') | default('xian', true)) == 'xian'"
+      - "(xian_profile_bds.get('port') | default(5432, true) | int) == 5432"
+    fail_msg: >-
+      The node profile is not canonical for remote deployment. Fix unknown
+      profile keys, disable stack-local services unsupported by xian-deploy,
+      and keep deployment-owned BDS connection settings in inventory/vault.
+
+- name: Derive runtime facts from node profile
+  ansible.builtin.set_fact:
+    xian_profile_name: "{{ xian_profile.get('name') }}"
+    xian_network_name: "{{ xian_profile.get('network') }}"
+    xian_moniker: "{{ xian_profile.get('moniker') }}"
+    xian_operator_profile: "{{ xian_profile.get('operator_profile') | default('', true) }}"
+    xian_monitoring_profile: "{{ xian_profile.get('monitoring_profile') | default('none', true) }}"
+    xian_node_image_integrated: "{{ xian_profile.get('node_integrated_image') }}"
+    xian_node_image_split: "{{ xian_profile.get('node_split_image') }}"
+    xian_p2p_seeds: "{{ xian_profile_p2p.get('seeds', []) }}"
+    xian_p2p_persistent_peers: "{{ xian_profile_p2p.get('persistent_peers', []) }}"
+    xian_bds_enabled: "{{ xian_profile_bds.get('enabled', false) | bool }}"
+    xian_dashboard_enabled: "{{ xian_profile_dashboard.get('enabled', false) | bool }}"
+    xian_monitoring_enabled: "{{ xian_profile_monitoring.get('enabled', false) | bool }}"
+    xian_allow_cors: "{{ xian_profile_cometbft.get('allow_cors', true) | bool }}"
+    xian_cometbft_prometheus_enabled: "{{ xian_profile_cometbft.get('prometheus', true) | bool }}"
+    xian_pruning_enabled: "{{ xian_profile.get('pruning_enabled', false) | bool }}"
+    xian_blocks_to_keep: "{{ xian_profile.get('blocks_to_keep', 100000) | int }}"
+    xian_block_policy_mode: "{{ xian_profile.get('block_policy_mode', 'on_demand') }}"
+    xian_block_policy_interval: "{{ xian_profile.get('block_policy_interval', '0s') }}"
+    xian_transaction_trace_logging: "{{ xian_profile.get('transaction_trace_logging', false) | bool }}"
+    xian_app_log_level: "{{ xian_profile.get('app_log_level', 'INFO') }}"
+    xian_app_log_json: "{{ xian_profile.get('app_log_json', false) | bool }}"
+    xian_app_log_rotation_hours: "{{ xian_profile.get('app_log_rotation_hours', 1) | int }}"
+    xian_app_log_retention_days: "{{ xian_profile.get('app_log_retention_days', 7) | int }}"
+    xian_simulation_enabled: "{{ xian_profile.get('simulation_enabled', true) | bool }}"
+    xian_simulation_max_concurrency: "{{ xian_profile.get('simulation_max_concurrency', 2) | int }}"
+    xian_simulation_timeout_ms: "{{ xian_profile.get('simulation_timeout_ms', 3000) | int }}"
+    xian_simulation_max_chi: "{{ xian_profile.get('simulation_max_chi', 1000000) | int }}"
+    xian_parallel_execution_enabled: "{{ xian_profile.get('parallel_execution_enabled', false) | bool }}"
+    xian_parallel_execution_workers: "{{ xian_profile.get('parallel_execution_workers', 4) | int }}"
+    xian_parallel_execution_min_transactions: "{{ xian_profile.get('parallel_execution_min_transactions', 8) | int }}"
+    xian_parallel_execution_max_speculative_waves: "{{ xian_profile_parallel_execution.get('max_speculative_waves', 4) | int }}"
+    xian_parallel_execution_min_wave_acceptance_ratio: "{{ xian_profile_parallel_execution.get('min_wave_acceptance_ratio', 0.25) | float }}"
+    xian_parallel_execution_low_acceptance_min_wave_size: "{{ xian_profile_parallel_execution.get('low_acceptance_min_wave_size', 8) | int }}"
+    xian_parallel_execution_warm_workers: "{{ xian_profile_parallel_execution.get('warm_workers', true) | bool }}"
+    xian_parallel_execution_access_estimates_enabled: "{{ xian_profile_parallel_execution.get('access_estimates_enabled', true) | bool }}"
+    xian_pending_nonce_reservation_ttl_seconds: "{{ xian_profile_pending_nonce.get('reservation_ttl_seconds', 60.0) | float }}"
+    xian_max_pending_nonces_per_sender: "{{ xian_profile_pending_nonce.get('max_per_sender', 128) | int }}"
+    xian_statesync_enable: "{{ xian_profile_statesync.get('enabled', false) | bool }}"
+    xian_statesync_rpc_servers: "{{ xian_profile_statesync.get('rpc_servers', []) }}"
+    xian_statesync_trust_height: "{{ xian_profile_statesync.get('trust_height', 0) | int }}"
+    xian_statesync_trust_hash: "{{ xian_profile_statesync.get('trust_hash', '') }}"
+    xian_statesync_trust_period: "{{ xian_profile_statesync.get('trust_period', '168h0m0s') }}"
+    xian_metrics_enabled: "{{ xian_profile_metrics.get('enabled', true) | bool }}"
+    xian_metrics_host: "{{ xian_profile_metrics.get('host', '127.0.0.1') }}"
+    xian_metrics_port: "{{ xian_profile_metrics.get('port', 9108) | int }}"
+    xian_metrics_bds_refresh_seconds: "{{ xian_profile_metrics.get('bds_refresh_seconds', 5.0) | float }}"
+    xian_snapshot_url: "{{ xian_profile.get('snapshot_url') | default('', true) }}"
+    xian_snapshot_signing_keys: "{{ xian_profile.get('snapshot_signing_keys') | default([], true) }}"
+
+- name: Derive remote runtime settings from node profile
+  ansible.builtin.set_fact:
+    xian_bds_pool_min_size: "{{ xian_profile_bds.get('pool_min_size', xian_bds_pool_min_size) | int }}"
+    xian_bds_pool_max_size: "{{ xian_profile_bds.get('pool_max_size', xian_bds_pool_max_size) | int }}"
+    xian_bds_statement_timeout_ms: "{{ xian_profile_bds.get('statement_timeout_ms', xian_bds_statement_timeout_ms) | int }}"
+    xian_bds_acquire_timeout_ms: "{{ xian_profile_bds.get('acquire_timeout_ms', xian_bds_acquire_timeout_ms) | int }}"
+    xian_bds_application_name: "{{ xian_profile_bds.get('application_name') if (xian_profile_bds.get('application_name') | default('', true) | length) > 0 else xian_bds_application_name }}"
+    xian_bds_queue_max_size: "{{ xian_profile_bds.get('queue_max_size', xian_bds_queue_max_size) | int }}"
+    xian_bds_catchup_enabled: "{{ xian_profile_bds.get('catchup_enabled', xian_bds_catchup_enabled) | bool }}"
+    xian_bds_catchup_poll_seconds: "{{ xian_profile_bds.get('catchup_poll_seconds', xian_bds_catchup_poll_seconds) | float }}"
+    xian_bds_spool_warn_entries: "{{ xian_profile_bds.get('spool_warn_entries', xian_bds_spool_warn_entries) | int }}"
+    xian_bds_spool_warn_bytes: "{{ xian_profile_bds.get('spool_warn_bytes', xian_bds_spool_warn_bytes) | int }}"
+    xian_bds_disk_free_warn_bytes: "{{ xian_profile_bds.get('disk_free_warn_bytes', xian_bds_disk_free_warn_bytes) | int }}"
+    xian_genesis_source: "{{ xian_profile_genesis.get('source') if xian_profile_genesis.get('kind') == 'source' else xian_genesis_source }}"
+    xian_genesis_bundle: "{{ xian_profile_genesis.get('bundle') if xian_profile_genesis.get('kind') == 'bundle' else xian_genesis_bundle }}"
+
+- name: Derive monitoring variants from operator profile
+  ansible.builtin.set_fact:
+    xian_monitoring_dashboard_variant: "{{ xian_operator_profile if xian_operator_profile in ['shared_network'] else 'overview' }}"
+    xian_monitoring_alert_variant: "{{ xian_operator_profile if xian_operator_profile in ['shared_network'] else 'none' }}"
+
+- name: Validate derived profile runtime settings
+  ansible.builtin.assert:
+    that:
+      - "xian_deploy_topology in ['integrated', 'fidelity']"
+      - "not (xian_parallel_execution_enabled | bool) or (xian_parallel_execution_workers | int > 0)"
+      - "not (xian_bds_enabled | bool) or (xian_bds_dsn | length > 0) or ((xian_bds_host | length > 0) and (xian_bds_database | length > 0) and (xian_bds_user | length > 0) and (xian_bds_password | length > 0))"
+      - "not (xian_statesync_enable | bool) or (xian_statesync_rpc_servers | length >= 2)"
+      - "not (xian_statesync_enable | bool) or (xian_statesync_trust_height | int > 0)"
+      - "not (xian_statesync_enable | bool) or (xian_statesync_trust_hash | length > 0)"
+      - "not (xian_statesync_enable | bool) or (xian_statesync_trust_period | length > 0)"
+    fail_msg: >-
+      The node profile produced an invalid remote runtime. Check the profile
+      services, advanced state-sync settings, BDS deployment bindings, and
+      xian_deploy_topology.

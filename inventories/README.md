@@ -6,8 +6,11 @@
 ## Notes
 - Keep real inventories and secrets out of the public repo.
 - Use this folder as the shape reference for private deployment repos.
-- The `example/solutions/` subfolder shows the recommended host layouts for
-  the validated remote starter flows.
+- Set `xian_deploy_root` for the common remote layout. The deployment roles
+  derive runtime, node-home, BDS, and monitoring paths from that root; override
+  individual path vars only when a host needs a non-standard layout.
+- The `example/examples/` subfolder shows reusable host layouts for generated
+  node profiles.
 
 ```mermaid
 flowchart LR

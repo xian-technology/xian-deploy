@@ -3,5 +3,5 @@
   hosts: xian_nodes
   become: true
   roles:
+    - xian_profile
     - xian_node_home
-

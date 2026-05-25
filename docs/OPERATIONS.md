@@ -2,7 +2,7 @@
 
 This file records the concrete operator runbooks for `xian-deploy`.
 
-For the validated remote reference-app paths, see [SOLUTIONS.md](SOLUTIONS.md).
+For example inventory shapes, see [EXAMPLES.md](EXAMPLES.md).
 
 ## Remote Health
 
@@ -15,7 +15,8 @@ ansible-playbook playbooks/health.yml
 
 What it checks:
 
-- expected running containers for the selected topology
+- expected running containers for `xian_deploy_topology` and the loaded node
+  profile
 - RPC reachability and current sync status
 - Xian metrics
 - optional dashboard / Prometheus / Grafana reachability
@@ -114,13 +115,13 @@ serve Xian application snapshots through CometBFT state sync.
 ansible-playbook playbooks/bootstrap-state-sync.yml
 ```
 
-Required variables:
+Required profile settings:
 
-- `xian_statesync_enable=true`
-- at least two `xian_statesync_rpc_servers`
-- `xian_statesync_trust_height`
-- `xian_statesync_trust_hash`
-- `xian_statesync_trust_period`
+- `advanced.statesync.enabled=true`
+- at least two `advanced.statesync.rpc_servers`
+- `advanced.statesync.trust_height`
+- `advanced.statesync.trust_hash`
+- `advanced.statesync.trust_period`
 
 This path reuses the normal remote deploy role, but it validates the state-sync
-inputs first and prints a focused summary afterward.
+profile settings first and prints a focused summary afterward.

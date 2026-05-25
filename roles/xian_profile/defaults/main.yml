@@ -1,0 +1,39 @@
+---
+xian_deploy_root: /srv/xian
+xian_runtime_dir: "{{ xian_deploy_root }}/runtime"
+xian_cometbft_home: "{{ xian_deploy_root }}/node-home/.cometbft"
+xian_bds_data_dir: "{{ xian_deploy_root }}/bds/postgres"
+xian_bds_spool_dir: "{{ xian_deploy_root }}/bds/spool"
+xian_monitoring_dir: "{{ xian_runtime_dir }}/monitoring"
+
+xian_deploy_topology: integrated
+
+xian_discover_seeds: []
+xian_genesis_source: ""
+xian_genesis_bundle: ""
+xian_genesis_time: ""
+xian_chain_id: ""
+xian_validator_private_key_hex: ""
+xian_snapshot_expected_chain_id: ""
+
+xian_bds_dsn: ""
+xian_bds_host: postgres
+xian_bds_port: 5432
+xian_bds_database: xian
+xian_bds_user: xian
+xian_bds_password: xian
+xian_bds_pool_min_size: 1
+xian_bds_pool_max_size: 10
+xian_bds_statement_timeout_ms: 0
+xian_bds_acquire_timeout_ms: 10000
+xian_bds_application_name: xian-bds
+xian_bds_queue_max_size: 128
+xian_bds_catchup_enabled: true
+xian_bds_catchup_poll_seconds: 1.0
+xian_bds_rpc_url: ""
+xian_bds_spool_warn_entries: 256
+xian_bds_spool_warn_bytes: 536870912
+xian_bds_disk_free_warn_bytes: 2147483648
+
+xian_dashboard_bind_host: 127.0.0.1
+xian_dashboard_port: 8080

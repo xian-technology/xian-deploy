@@ -4,7 +4,11 @@
   become: true
   serial: 1
   pre_tasks:
-    - name: Validate state-sync inventory settings
+    - name: Load node profile
+      ansible.builtin.include_role:
+        name: xian_profile
+
+    - name: Validate state-sync profile settings
       ansible.builtin.assert:
         that:
           - xian_statesync_enable | bool
@@ -15,7 +19,7 @@
           - xian_statesync_trust_period is string
           - xian_statesync_trust_period | length > 0
         fail_msg: >-
-          State sync bootstrap requires xian_statesync_enable=true, at least two
+          State sync bootstrap requires the node profile to enable state sync, at least two
           RPC servers, and non-empty trust height/hash/period settings.
   tasks:
     - name: Deploy runtime with state-sync configuration

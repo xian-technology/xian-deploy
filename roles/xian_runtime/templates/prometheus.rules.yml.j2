@@ -1,80 +1,5 @@
 groups:
-{% if xian_monitoring_alert_preset == "embedded_backend" %}
-  - name: xian_embedded_backend
-    rules:
-      - alert: XianAbciTargetDown
-        expr: up{job="xian_abci"} == 0
-        for: 2m
-        labels:
-          severity: critical
-          preset: embedded_backend
-        annotations:
-          summary: Xian ABCI metrics target is down
-          description: The Xian ABCI metrics endpoint has been unreachable for more than two minutes.
-      - alert: XianNodeInfoMissing
-        expr: absent(xian_node_info)
-        for: 2m
-        labels:
-          severity: critical
-          preset: embedded_backend
-        annotations:
-          summary: Xian node info metric is missing
-          description: The Xian app metrics exporter is reachable, but xian_node_info has not been observed for more than two minutes.
-      - alert: XianCometBftTargetDown
-        expr: up{job="xian_cometbft"} == 0
-        for: 2m
-        labels:
-          severity: critical
-          preset: embedded_backend
-        annotations:
-          summary: CometBFT metrics target is down
-          description: The CometBFT metrics endpoint has been unreachable for more than two minutes.
-      - alert: XianBdsLagHigh
-        expr: xian_bds_metric{field="height_lag"} > 10
-        for: 10m
-        labels:
-          severity: warning
-          preset: embedded_backend
-        annotations:
-          summary: BDS indexing lag is elevated
-          description: BDS height lag has stayed above 10 blocks for ten minutes.
-      - alert: XianBdsAlertsPresent
-        expr: sum(xian_bds_alert) > 0
-        for: 5m
-        labels:
-          severity: warning
-          preset: embedded_backend
-        annotations:
-          summary: The node is reporting active BDS alerts
-          description: One or more BDS alerts have remained active for at least five minutes.
-      - alert: XianBdsMetricsRefreshFailed
-        expr: xian_bds_metric{field="refresh_success"} == 0
-        for: 5m
-        labels:
-          severity: warning
-          preset: embedded_backend
-        annotations:
-          summary: BDS status refresh is failing
-          description: The node has not refreshed its BDS monitoring snapshot successfully for at least five minutes.
-      - alert: XianBdsRecoveryStalled
-        expr: (xian_bds_metric{field="catching_up"} > 0) and on (job, instance) (delta(xian_bds_metric{field="indexed_height"}[15m]) < 1)
-        for: 10m
-        labels:
-          severity: warning
-          preset: embedded_backend
-        annotations:
-          summary: BDS catch-up appears stalled
-          description: BDS is still reporting catch-up activity, but indexed height has not advanced over the last fifteen minutes.
-      - alert: XianFinalizeSlow
-        expr: xian_perf_global_metric{metric="finalize_block",stat="avg_ms"} > 1000
-        for: 10m
-        labels:
-          severity: warning
-          preset: embedded_backend
-        annotations:
-          summary: FinalizeBlock average latency is elevated
-          description: Average FinalizeBlock latency has stayed above 1000 ms for ten minutes.
-{% elif xian_monitoring_alert_preset == "shared_network" %}
+{% if xian_monitoring_alert_variant == "shared_network" %}
   - name: xian_shared_network
     rules:
       - alert: XianAbciTargetDown
@@ -82,7 +7,7 @@ groups:
         for: 2m
         labels:
           severity: critical
-          preset: shared_network
+          profile: shared_network
         annotations:
           summary: Xian ABCI metrics target is down
           description: The Xian ABCI metrics endpoint has been unreachable for more than two minutes.
@@ -91,7 +16,7 @@ groups:
         for: 2m
         labels:
           severity: critical
-          preset: shared_network
+          profile: shared_network
         annotations:
           summary: Xian node info metric is missing
           description: The Xian app metrics exporter is reachable, but xian_node_info has not been observed for more than two minutes.
@@ -100,7 +25,7 @@ groups:
         for: 2m
         labels:
           severity: critical
-          preset: shared_network
+          profile: shared_network
         annotations:
           summary: CometBFT metrics target is down
           description: The CometBFT metrics endpoint has been unreachable for more than two minutes.
@@ -109,7 +34,7 @@ groups:
         for: 15m
         labels:
           severity: critical
-          preset: shared_network
+          profile: shared_network
         annotations:
           summary: Block progress appears stalled
           description: Block height has not advanced over the last fifteen minutes on a shared-network posture.
@@ -118,7 +43,7 @@ groups:
         for: 10m
         labels:
           severity: warning
-          preset: shared_network
+          profile: shared_network
         annotations:
           summary: BDS indexing lag is elevated
           description: BDS height lag has stayed above five blocks for ten minutes.
@@ -127,7 +52,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          preset: shared_network
+          profile: shared_network
         annotations:
           summary: The node is reporting active BDS alerts
           description: One or more BDS alerts have remained active for at least five minutes.
@@ -136,7 +61,7 @@ groups:
         for: 5m
         labels:
           severity: warning
-          preset: shared_network
+          profile: shared_network
         annotations:
           summary: BDS status refresh is failing
           description: The node has not refreshed its BDS monitoring snapshot successfully for at least five minutes.
@@ -145,7 +70,7 @@ groups:
         for: 10m
         labels:
           severity: warning
-          preset: shared_network
+          profile: shared_network
         annotations:
           summary: BDS catch-up appears stalled
           description: BDS is still reporting catch-up activity, but indexed height has not advanced over the last fifteen minutes.

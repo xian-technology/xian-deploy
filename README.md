@@ -14,7 +14,8 @@ It pairs with `xian-cli` (which prepares node homes) and with `xian-stack`
 flowchart LR
   CLI["xian-cli prepares node home"] --> Archive["Node-home archive"]
   Stack["xian-stack publishes images"] --> Images["Released xian-node images"]
-  Inventory["Inventory and group vars"] --> Playbooks["xian-deploy playbooks"]
+  Profile["Node profile JSON"] --> Playbooks["xian-deploy playbooks"]
+  Inventory["Inventory and deploy bindings"] --> Playbooks
   Archive --> Playbooks
   Images --> Playbooks
   Playbooks --> Host["Remote Linux host"]
@@ -34,15 +35,23 @@ ansible-playbook playbooks/health.yml         # run remote health checks
 That flow assumes:
 
 - a node-home archive has already been prepared (typically with `xian-cli`)
-- inventory and group vars are set for the target hosts
+- `xian_node_profile` points at the canonical node profile for each host
+- inventory and group vars are set for published ports, secrets, and
+  `xian_deploy_root` or explicit path overrides
 - the target uses released Xian images, not local source builds
 
 ## Principles
 
 - **Deploy released artifacts.** No source checkouts on the target host. The
   node runs the same images that `xian-stack` builds and signs.
-- **Inventory-driven.** Host setup and runtime posture are explicit in
-  inventory and group vars, never inferred at runtime.
+- **Profile-driven runtime.** The node profile is the source of truth for
+  runtime intent: enabled services, block policy, monitoring posture, state
+  sync, metrics, P2P peers, snapshots, and node images.
+- **Inventory for deploy bindings.** Inventory owns host paths, published
+  ports, secrets, resource limits, and the Compose topology. The example
+  inventory sets `xian_deploy_root`; derived paths come from role defaults
+  unless a private inventory deliberately overrides them. Inventory should not
+  duplicate profile runtime settings.
 - **Composable flows.** Bootstrap, deploy, upgrade, health, restart, smoke,
   state-sync, and snapshot recovery are separate playbooks. They can be
   invoked in isolation.
@@ -59,13 +68,12 @@ That flow assumes:
   `restore-state-snapshot.yml`.
 - `roles/` — reusable deployment roles:
   - `docker_host/` — host bootstrap (Docker, sysctl, base packages).
+  - `xian_profile/` — node-profile loading and deploy fact derivation.
   - `xian_node_home/` — node-home upload, layout, and permission rules.
   - `xian_runtime/` — Compose rendering and runtime lifecycle.
 - `inventories/` — example inventory layout and shared group variables.
-- `presets/` — reusable runtime posture presets for starter flows
-  (`presets/templates/`).
 - `collections/` — vendored Ansible collections used by the playbooks.
-- `docs/` — architecture, operations, and solution notes.
+- `docs/` — architecture, operations, and example deployment notes.
 
 ## Common Playbooks
 
@@ -83,8 +91,8 @@ That flow assumes:
 | `playbooks/bootstrap-state-sync.yml` | join an existing network via protocol state sync       |
 | `playbooks/restore-state-snapshot.yml` | restore an application-state snapshot                |
 
-For validated reference-app flows, pair those playbooks with the starter
-presets under `presets/templates/` as described in `docs/SOLUTIONS.md`.
+Generate node profiles from the matching `xian-configs/templates/` starter and
+set `xian_node_profile` per host as described in `docs/EXAMPLES.md`.
 
 ## Validation
 
@@ -103,4 +111,4 @@ hosts.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — major components and dependency direction
 - [docs/BACKLOG.md](docs/BACKLOG.md) — open work and follow-ups
 - [docs/OPERATIONS.md](docs/OPERATIONS.md) — operator runbooks and remote workflows
-- [docs/SOLUTIONS.md](docs/SOLUTIONS.md) — reference solution flows and preset usage
+- [docs/EXAMPLES.md](docs/EXAMPLES.md) — example inventory shapes and profile-driven deploy usage

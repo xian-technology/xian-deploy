@@ -1,10 +1,12 @@
 ---
-- name: Validate topology
+- name: Validate profile-derived runtime facts
   ansible.builtin.assert:
     that:
-      - xian_topology in ["integrated", "fidelity"]
+      - xian_profile is defined
+      - xian_profile is mapping
+      - xian_deploy_topology in ["integrated", "fidelity"]
       - xian_runtime_action in ["deploy", "stop", "restart", "status"]
-    fail_msg: Invalid xian_topology or xian_runtime_action
+    fail_msg: Run the xian_profile role before xian_runtime and set a valid xian_deploy_topology/runtime action.
 
 - name: Validate parallel execution workers
   ansible.builtin.assert:
@@ -28,13 +30,13 @@
   ansible.builtin.set_fact:
     xian_effective_bds_rpc_url: >-
       {{
-        '' if not (xian_enable_bds | bool)
+        '' if not (xian_bds_enabled | bool)
         else (
           xian_bds_rpc_url
           if (xian_bds_rpc_url | length > 0)
           else (
             'http://127.0.0.1:26657'
-            if xian_topology == 'integrated'
+            if xian_deploy_topology == 'integrated'
             else 'http://cometbft:26657'
           )
         )
@@ -45,7 +47,7 @@
     xian_primary_image: >-
       {{
         xian_node_image_integrated
-        if xian_topology == "integrated"
+        if xian_deploy_topology == "integrated"
         else xian_node_image_split
       }}
     xian_dashboard_image: "{{ xian_node_image_split }}"
@@ -85,7 +87,7 @@
     mode: "0644"
   when:
     - xian_runtime_action == "deploy"
-    - xian_enable_monitoring | bool
+    - xian_monitoring_enabled | bool
 
 - name: Render Prometheus config
   ansible.builtin.template:
@@ -94,7 +96,7 @@
     mode: "0644"
   when:
     - xian_runtime_action == "deploy"
-    - xian_enable_monitoring | bool
+    - xian_monitoring_enabled | bool
 
 - name: Render Prometheus alert rules
   ansible.builtin.template:
@@ -103,7 +105,7 @@
     mode: "0644"
   when:
     - xian_runtime_action == "deploy"
-    - xian_enable_monitoring | bool
+    - xian_monitoring_enabled | bool
 
 - name: Copy Grafana provisioning
   ansible.builtin.copy:
@@ -115,7 +117,7 @@
     - datasources/xian.yml
   when:
     - xian_runtime_action == "deploy"
-    - xian_enable_monitoring | bool
+    - xian_monitoring_enabled | bool
 
 - name: Copy always-on Grafana dashboards
   ansible.builtin.copy:
@@ -128,7 +130,7 @@
     - xian-vm-runtime.json
   when:
     - xian_runtime_action == "deploy"
-    - xian_enable_monitoring | bool
+    - xian_monitoring_enabled | bool
 
 - name: Copy Alertmanager routing example
   ansible.builtin.copy:
@@ -137,42 +139,38 @@
     mode: "0644"
   when:
     - xian_runtime_action == "deploy"
-    - xian_enable_monitoring | bool
+    - xian_monitoring_enabled | bool
 
-- name: Remove stale preset dashboards
+- name: Remove stale posture dashboards
   ansible.builtin.file:
     path: "{{ xian_monitoring_dir }}/grafana/dashboards/{{ item }}"
     state: absent
   loop:
-    - xian-embedded-backend.json
     - xian-shared-network.json
   when:
     - xian_runtime_action == "deploy"
-    - xian_enable_monitoring | bool
+    - xian_monitoring_enabled | bool
 
-- name: Copy preset Grafana dashboard
+- name: Copy profile-specific Grafana dashboard
   ansible.builtin.copy:
     src: "monitoring/grafana/dashboards/{{ item.src }}"
     dest: "{{ xian_monitoring_dir }}/grafana/dashboards/{{ item.dest }}"
     mode: "0644"
   loop:
-    - src: xian-embedded-backend.json
-      dest: xian-embedded-backend.json
-      preset: embedded_backend
     - src: xian-shared-network.json
       dest: xian-shared-network.json
-      preset: shared_network
+      variant: shared_network
   when:
     - xian_runtime_action == "deploy"
-    - xian_enable_monitoring | bool
-    - xian_monitoring_dashboard_preset == item.preset
+    - xian_monitoring_enabled | bool
+    - xian_monitoring_dashboard_variant == item.variant
 
 - name: Pull deployment images
   ansible.builtin.shell: >-
     docker compose
     -p {{ xian_project_name | quote }}
     -f {{ xian_main_compose_path | quote }}
-    {% if xian_enable_monitoring | bool %}
+    {% if xian_monitoring_enabled | bool %}
     -f {{ xian_monitoring_compose_path | quote }}
     {% endif %}
     pull
@@ -188,9 +186,9 @@
     xian-configure-node
     --moniker {{ xian_moniker | quote }}
     {{ '--allow-cors' if xian_allow_cors else '--no-allow-cors' }}
-    {{ '--prometheus' if xian_prometheus_enabled else '--no-prometheus' }}
-    {{ '--bds-enabled' if xian_enable_bds else '--no-bds-enabled' }}
-    {{ '--enable-pruning' if xian_enable_pruning else '--no-enable-pruning' }}
+    {{ '--prometheus' if xian_cometbft_prometheus_enabled else '--no-prometheus' }}
+    {{ '--bds-enabled' if xian_bds_enabled else '--no-bds-enabled' }}
+    {{ '--enable-pruning' if xian_pruning_enabled else '--no-enable-pruning' }}
     {{ '--statesync-enable' if xian_statesync_enable else '--no-statesync-enable' }}
     {{ '--metrics-enabled' if xian_metrics_enabled else '--no-metrics-enabled' }}
     {{ '--transaction-trace-logging' if xian_transaction_trace_logging else '--no-transaction-trace-logging' }}
@@ -219,11 +217,11 @@
     --pending-nonce-reservation-ttl-seconds {{ xian_pending_nonce_reservation_ttl_seconds | quote }}
     --max-pending-nonces-per-sender {{ xian_max_pending_nonces_per_sender | quote }}
     --bds-dsn {{ xian_bds_dsn | quote }}
-    --bds-host {{ (xian_bds_host if xian_enable_bds else '') | quote }}
+    --bds-host {{ (xian_bds_host if xian_bds_enabled else '') | quote }}
     --bds-port {{ xian_bds_port | quote }}
     --bds-database {{ xian_bds_database | quote }}
-    --bds-user {{ (xian_bds_user if xian_enable_bds else '') | quote }}
-    --bds-password {{ (xian_bds_password if xian_enable_bds else '') | quote }}
+    --bds-user {{ (xian_bds_user if xian_bds_enabled else '') | quote }}
+    --bds-password {{ (xian_bds_password if xian_bds_enabled else '') | quote }}
     --bds-pool-min-size {{ xian_bds_pool_min_size | quote }}
     --bds-pool-max-size {{ xian_bds_pool_max_size | quote }}
     --bds-statement-timeout-ms {{ xian_bds_statement_timeout_ms | quote }}
@@ -233,7 +231,7 @@
     {{ '--bds-catchup-enabled' if (xian_bds_catchup_enabled | bool) else '--no-bds-catchup-enabled' }}
     --bds-catchup-poll-seconds {{ xian_bds_catchup_poll_seconds | quote }}
     --bds-rpc-url {{ xian_effective_bds_rpc_url | quote }}
-    --bds-spool-dir {{ (xian_bds_spool_dir if xian_enable_bds else '') | quote }}
+    --bds-spool-dir {{ (xian_bds_spool_dir if xian_bds_enabled else '') | quote }}
     --bds-spool-warn-entries {{ xian_bds_spool_warn_entries | quote }}
     --bds-spool-warn-bytes {{ xian_bds_spool_warn_bytes | quote }}
     --bds-disk-free-warn-bytes {{ xian_bds_disk_free_warn_bytes | quote }}
@@ -261,7 +259,7 @@
     docker compose
     -p {{ xian_project_name | quote }}
     -f {{ xian_main_compose_path | quote }}
-    {% if xian_enable_monitoring | bool %}
+    {% if xian_monitoring_enabled | bool %}
     -f {{ xian_monitoring_compose_path | quote }}
     {% endif %}
     up -d
@@ -272,7 +270,7 @@
     docker compose
     -p {{ xian_project_name | quote }}
     -f {{ xian_main_compose_path | quote }}
-    {% if xian_enable_monitoring | bool %}
+    {% if xian_monitoring_enabled | bool %}
     -f {{ xian_monitoring_compose_path | quote }}
     {% endif %}
     down
@@ -283,7 +281,7 @@
     docker compose
     -p {{ xian_project_name | quote }}
     -f {{ xian_main_compose_path | quote }}
-    {% if xian_enable_monitoring | bool %}
+    {% if xian_monitoring_enabled | bool %}
     -f {{ xian_monitoring_compose_path | quote }}
     {% endif %}
     restart
@@ -294,7 +292,7 @@
     docker compose
     -p {{ xian_project_name | quote }}
     -f {{ xian_main_compose_path | quote }}
-    {% if xian_enable_monitoring | bool %}
+    {% if xian_monitoring_enabled | bool %}
     -f {{ xian_monitoring_compose_path | quote }}
     {% endif %}
     ps

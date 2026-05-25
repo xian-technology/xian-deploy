@@ -1,0 +1,22 @@
+---
+all:
+  children:
+    xian_nodes:
+      children:
+        xian_validators:
+          hosts:
+            validator-1.example.org:
+              ansible_user: deploy
+              xian_node_profile: /path/to/consortium-5/nodes/validator-1.json
+            validator-2.example.org:
+              ansible_user: deploy
+              xian_node_profile: /path/to/consortium-5/nodes/validator-2.json
+            validator-3.example.org:
+              ansible_user: deploy
+              xian_node_profile: /path/to/consortium-5/nodes/validator-3.json
+            validator-4.example.org:
+              ansible_user: deploy
+              xian_node_profile: /path/to/consortium-5/nodes/validator-4.json
+            validator-5.example.org:
+              ansible_user: deploy
+              xian_node_profile: /path/to/consortium-5/nodes/validator-5.json

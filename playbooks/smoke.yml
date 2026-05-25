@@ -2,13 +2,15 @@
 - name: Smoke check a Xian deployment
   hosts: xian_nodes
   become: true
+  roles:
+    - xian_profile
   tasks:
     - name: Show container status
       ansible.builtin.shell: >-
         docker compose
         -p {{ xian_project_name | quote }}
         -f {{ xian_runtime_dir | quote }}/docker-compose.yml
-        {% if xian_enable_monitoring | bool %}
+        {% if xian_monitoring_enabled | bool %}
         -f {{ xian_runtime_dir | quote }}/docker-compose.monitoring.yml
         {% endif %}
         ps
@@ -36,7 +38,7 @@
         return_content: false
       register: xian_dashboard_status
       changed_when: false
-      when: xian_enable_dashboard | bool
+      when: xian_dashboard_enabled | bool
 
     - name: Check Prometheus
       ansible.builtin.uri:
@@ -44,7 +46,7 @@
         return_content: false
       register: xian_prometheus_status
       changed_when: false
-      when: xian_enable_monitoring | bool
+      when: xian_monitoring_enabled | bool
 
     - name: Print smoke summary
       ansible.builtin.debug:
@@ -53,5 +55,5 @@
           - "rpc_height={{ xian_rpc_status.json.result.sync_info.latest_block_height }}"
           - "rpc_catching_up={{ xian_rpc_status.json.result.sync_info.catching_up }}"
           - "metrics_ok={{ (xian_metrics_status.status if xian_metrics_enabled else 'disabled') }}"
-          - "dashboard_ok={{ (xian_dashboard_status.status if xian_enable_dashboard else 'disabled') }}"
-          - "prometheus_ok={{ (xian_prometheus_status.status if xian_enable_monitoring else 'disabled') }}"
+          - "dashboard_ok={{ (xian_dashboard_status.status if xian_dashboard_enabled else 'disabled') }}"
+          - "prometheus_ok={{ (xian_prometheus_status.status if xian_monitoring_enabled else 'disabled') }}"

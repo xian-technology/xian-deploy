@@ -8,10 +8,14 @@
     xian_restore_image: >-
       {{
         xian_node_image_integrated
-        if xian_topology == "integrated"
+        if xian_deploy_topology == "integrated"
         else xian_node_image_split
       }}
   pre_tasks:
+    - name: Load node profile
+      ansible.builtin.include_role:
+        name: xian_profile
+
     - name: Validate state snapshot archive path
       ansible.builtin.assert:
         that:
@@ -50,4 +54,3 @@
         name: xian_runtime
       vars:
         xian_runtime_action: deploy
-

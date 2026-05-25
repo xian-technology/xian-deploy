@@ -1,18 +1,18 @@
 networks:
   xian-net:
     internal: false
-{% if xian_enable_bds %}
+{% if xian_bds_enabled %}
   xian-db:
     internal: true
 {% endif %}
 
-{% if xian_enable_monitoring %}
+{% if xian_monitoring_enabled %}
 volumes:
   grafana-data:
 {% endif %}
 
 services:
-{% if xian_topology == "integrated" %}
+{% if xian_deploy_topology == "integrated" %}
   abci:
     image: {{ xian_node_image_integrated | to_json }}
     restart: always
@@ -22,13 +22,16 @@ services:
     mem_reservation: {{ xian_integrated_memory_reservation | to_json }}
     volumes:
       - {{ (xian_cometbft_home ~ ':/root/.cometbft') | to_json }}
+{% if xian_bds_enabled %}
+      - {{ (xian_bds_spool_dir ~ ':' ~ xian_bds_spool_dir) | to_json }}
+{% endif %}
     environment:
       XIAN_CONFIGS_DIR: /opt/xian-configs
       S6_VERBOSITY: {{ xian_s6_verbosity | to_json }}
       XIAN_PERF_ENABLED: {{ (1 if xian_perf_enabled else 0) | to_json }}
       XIAN_PERF_RECENT_BLOCKS: {{ xian_perf_recent_blocks | to_json }}
       XIAN_PERF_OUTPUT_PATH: /root/.cometbft/xian-perf.json
-{% if xian_enable_bds %}
+{% if xian_bds_enabled %}
       XIAN_BDS_DSN: {{ xian_bds_dsn | to_json }}
       XIAN_BDS_HOST: {{ xian_bds_host | to_json }}
       XIAN_BDS_PORT: {{ xian_bds_port | to_json }}
@@ -51,7 +54,7 @@ services:
 {% endif %}
     networks:
       - xian-net
-{% if xian_enable_bds %}
+{% if xian_bds_enabled %}
       - xian-db
 {% endif %}
     ports:
@@ -59,7 +62,7 @@ services:
       - {{ (xian_p2p_bind_host ~ ':' ~ xian_p2p_port ~ ':26656') | to_json }}
       - {{ (xian_comet_metrics_bind_host ~ ':' ~ xian_comet_metrics_port ~ ':26660') | to_json }}
       - {{ (xian_app_metrics_bind_host ~ ':' ~ xian_metrics_port ~ ':' ~ xian_metrics_port) | to_json }}
-{% if xian_enable_dashboard %}
+{% if xian_dashboard_enabled %}
 
   dashboard:
     image: {{ xian_dashboard_image | to_json }}
@@ -98,12 +101,15 @@ services:
     mem_reservation: {{ xian_fidelity_abci_memory_reservation | to_json }}
     volumes:
       - {{ (xian_cometbft_home ~ ':/root/.cometbft') | to_json }}
+{% if xian_bds_enabled %}
+      - {{ (xian_bds_spool_dir ~ ':' ~ xian_bds_spool_dir) | to_json }}
+{% endif %}
     environment:
       XIAN_CONFIGS_DIR: /opt/xian-configs
       XIAN_PERF_ENABLED: {{ (1 if xian_perf_enabled else 0) | to_json }}
       XIAN_PERF_RECENT_BLOCKS: {{ xian_perf_recent_blocks | to_json }}
       XIAN_PERF_OUTPUT_PATH: /root/.cometbft/xian-perf.json
-{% if xian_enable_bds %}
+{% if xian_bds_enabled %}
       XIAN_BDS_DSN: {{ xian_bds_dsn | to_json }}
       XIAN_BDS_HOST: {{ xian_bds_host | to_json }}
       XIAN_BDS_PORT: {{ xian_bds_port | to_json }}
@@ -127,7 +133,7 @@ services:
     command: ["xian-abci"]
     networks:
       - xian-net
-{% if xian_enable_bds %}
+{% if xian_bds_enabled %}
       - xian-db
 {% endif %}
     ports:
@@ -150,7 +156,7 @@ services:
       - {{ (xian_rpc_bind_host ~ ':' ~ xian_rpc_port ~ ':26657') | to_json }}
       - {{ (xian_p2p_bind_host ~ ':' ~ xian_p2p_port ~ ':26656') | to_json }}
       - {{ (xian_comet_metrics_bind_host ~ ':' ~ xian_comet_metrics_port ~ ':26660') | to_json }}
-{% if xian_enable_dashboard %}
+{% if xian_dashboard_enabled %}
 
   dashboard:
     image: {{ xian_dashboard_image | to_json }}
@@ -179,7 +185,7 @@ services:
       - {{ (xian_dashboard_bind_host ~ ':' ~ xian_dashboard_port ~ ':8080') | to_json }}
 {% endif %}
 {% endif %}
-{% if xian_enable_bds %}
+{% if xian_bds_enabled %}
 
   postgres:
     image: {{ xian_postgres_image | to_json }}
