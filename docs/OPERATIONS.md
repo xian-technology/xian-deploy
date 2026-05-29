@@ -3,6 +3,42 @@
 This file records the concrete operator runbooks for `xian-deploy`.
 
 For example inventory shapes, see [EXAMPLES.md](EXAMPLES.md).
+For secret handling, see [SECRETS.md](SECRETS.md).
+
+## Local Validation
+
+Run both checks before opening a deploy change:
+
+```bash
+make lint
+make validate
+```
+
+`make lint` runs the `ansible-lint` minimum profile over playbooks, roles, and
+inventories. `make validate` verifies the example inventory and playbook syntax.
+
+## Host Bootstrap Hardening
+
+`playbooks/bootstrap.yml` runs `host_hardening` before `docker_host`.
+
+The default hardening baseline writes `/etc/sysctl.d/90-xian-hardening.conf`
+with conservative network and kernel settings. Access-affecting controls are
+opt-in so a first bootstrap cannot silently lock an operator out:
+
+- `xian_host_hardening_manage_ssh`: writes an sshd drop-in for passwordless,
+  key-based access policy
+- `xian_host_hardening_manage_firewall`: installs and enables UFW with explicit
+  TCP allow rules
+- `xian_host_hardening_manage_unattended_upgrades`: enables Debian/Ubuntu
+  unattended security updates
+- `xian_host_hardening_manage_fail2ban`: installs and starts fail2ban
+
+Before enabling SSH or firewall management, confirm operator key access, the SSH
+port, and the public Xian ports that should be reachable. By default, the UFW
+allow list includes SSH and the configured P2P port; add RPC, dashboard,
+Prometheus, or Grafana ports only when those services are intentionally public.
+Docker also manages iptables for published container ports, so verify the
+effective exposure from outside the host after enabling UFW.
 
 ## Remote Health
 

@@ -5,6 +5,7 @@
 Main areas:
 
 - `playbooks/`: operator-facing actions
+- `roles/host_hardening/`: conservative host sysctl baseline and opt-in SSH/firewall controls
 - `roles/docker_host/`: Docker bootstrap on target hosts
 - `roles/xian_profile/`: canonical node-profile loading and deploy fact derivation
 - `roles/xian_node_home/`: prepared node-home upload and extraction

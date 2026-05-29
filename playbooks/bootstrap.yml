@@ -3,5 +3,5 @@
   hosts: xian_nodes
   become: true
   roles:
+    - host_hardening
     - docker_host
-

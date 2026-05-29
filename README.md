@@ -67,7 +67,8 @@ That flow assumes:
   `restart.yml`, `stop.yml`, `bootstrap-state-sync.yml`,
   `restore-state-snapshot.yml`.
 - `roles/` — reusable deployment roles:
-  - `docker_host/` — host bootstrap (Docker, sysctl, base packages).
+  - `host_hardening/` — conservative host hardening baseline and opt-in SSH/firewall controls.
+  - `docker_host/` — Docker bootstrap and base runtime packages.
   - `xian_profile/` — node-profile loading and deploy fact derivation.
   - `xian_node_home/` — node-home upload, layout, and permission rules.
   - `xian_runtime/` — Compose rendering and runtime lifecycle.

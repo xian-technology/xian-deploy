@@ -7,6 +7,16 @@ xian_deploy_topology: integrated
 # a private inventory needs a different host layout.
 xian_deploy_root: /srv/xian
 
+# Host hardening bootstrap. Sysctl hardening is enabled by default; SSH,
+# firewall, unattended upgrades, and fail2ban are explicit operator choices.
+xian_host_hardening_manage_ssh: false
+xian_host_hardening_manage_firewall: false
+xian_host_hardening_manage_unattended_upgrades: false
+xian_host_hardening_manage_fail2ban: false
+xian_host_hardening_firewall_allowed_tcp_ports:
+  - 22
+  - "{{ xian_p2p_port }}"
+
 # Paths on the control machine.
 xian_node_profile: /path/to/network/nodes/validator-1.json
 xian_node_home_archive: /path/to/node-home.tar.gz

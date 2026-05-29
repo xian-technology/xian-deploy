@@ -20,5 +20,8 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@v7
 
+      - name: Lint playbooks
+        run: make lint
+
       - name: Validate playbooks
         run: make validate

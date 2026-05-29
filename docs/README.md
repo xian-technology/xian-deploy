@@ -8,3 +8,4 @@ Start with:
 - `BACKLOG.md`
 - `OPERATIONS.md`
 - `EXAMPLES.md`
+- `SECRETS.md`

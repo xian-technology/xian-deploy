@@ -1,0 +1,46 @@
+---
+xian_host_hardening_enabled: true
+
+# Safe baseline defaults. Access-affecting controls stay opt-in so bootstrap
+# cannot accidentally lock an operator out of a fresh remote host.
+xian_host_hardening_manage_sysctl: true
+xian_host_hardening_manage_ssh: false
+xian_host_hardening_manage_firewall: false
+xian_host_hardening_manage_unattended_upgrades: false
+xian_host_hardening_manage_fail2ban: false
+
+xian_host_hardening_sysctl_settings:
+  kernel.randomize_va_space: 2
+  net.ipv4.conf.all.accept_redirects: 0
+  net.ipv4.conf.all.accept_source_route: 0
+  net.ipv4.conf.all.rp_filter: 1
+  net.ipv4.conf.all.send_redirects: 0
+  net.ipv4.conf.default.accept_redirects: 0
+  net.ipv4.conf.default.accept_source_route: 0
+  net.ipv4.conf.default.rp_filter: 1
+  net.ipv4.conf.default.send_redirects: 0
+  net.ipv4.tcp_syncookies: 1
+  net.ipv6.conf.all.accept_redirects: 0
+  net.ipv6.conf.all.accept_source_route: 0
+  net.ipv6.conf.default.accept_redirects: 0
+  net.ipv6.conf.default.accept_source_route: 0
+
+xian_host_hardening_ssh_service_name: ssh
+xian_host_hardening_ssh_settings:
+  PasswordAuthentication: "no"
+  PermitRootLogin: prohibit-password
+  PubkeyAuthentication: "yes"
+  X11Forwarding: "no"
+  MaxAuthTries: 3
+  ClientAliveInterval: 300
+  ClientAliveCountMax: 2
+
+xian_host_hardening_firewall_default_incoming_policy: deny
+xian_host_hardening_firewall_default_outgoing_policy: allow
+xian_host_hardening_firewall_allowed_tcp_ports:
+  - 22
+  - "{{ xian_p2p_port | default(26656) }}"
+
+xian_host_hardening_unattended_upgrades_config:
+  APT::Periodic::Update-Package-Lists: "1"
+  APT::Periodic::Unattended-Upgrade: "1"
