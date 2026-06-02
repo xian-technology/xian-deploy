@@ -102,6 +102,9 @@
       - simulation_max_concurrency
       - simulation_timeout_ms
       - simulation_max_chi
+      - tx_fee_mode
+      - free_tx_max_chi
+      - free_block_max_chi
       - parallel_execution_enabled
       - parallel_execution_workers
       - parallel_execution_min_transactions
@@ -251,6 +254,9 @@
     xian_simulation_max_concurrency: "{{ xian_profile.get('simulation_max_concurrency', 2) | int }}"
     xian_simulation_timeout_ms: "{{ xian_profile.get('simulation_timeout_ms', 3000) | int }}"
     xian_simulation_max_chi: "{{ xian_profile.get('simulation_max_chi', 1000000) | int }}"
+    xian_tx_fee_mode: "{{ xian_profile.get('tx_fee_mode', 'paid_metered') }}"
+    xian_free_tx_max_chi: "{{ xian_profile.get('free_tx_max_chi', 1000000) | int }}"
+    xian_free_block_max_chi: "{{ xian_profile.get('free_block_max_chi', 20000000) | int }}"
     xian_parallel_execution_enabled: "{{ xian_profile.get('parallel_execution_enabled', false) | bool }}"
     xian_parallel_execution_workers: "{{ xian_profile.get('parallel_execution_workers', 4) | int }}"
     xian_parallel_execution_min_transactions: "{{ xian_profile.get('parallel_execution_min_transactions', 8) | int }}"

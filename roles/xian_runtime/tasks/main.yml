@@ -14,6 +14,15 @@
       - not (xian_parallel_execution_enabled | bool) or (xian_parallel_execution_workers | int > 0)
     fail_msg: parallel_execution_workers must be greater than zero when parallel_execution_enabled is true
 
+- name: Validate transaction fee settings
+  ansible.builtin.assert:
+    that:
+      - xian_tx_fee_mode in ["paid_metered", "free_metered"]
+      - xian_free_tx_max_chi | int > 0
+      - xian_free_block_max_chi | int > 0
+      - (xian_free_block_max_chi | int) >= (xian_free_tx_max_chi | int)
+    fail_msg: tx fee settings must use a supported mode and positive caps, with free_block_max_chi greater than or equal to free_tx_max_chi
+
 - name: Validate genesis source selection
   ansible.builtin.assert:
     that:
@@ -206,6 +215,9 @@
     --simulation-max-concurrency {{ xian_simulation_max_concurrency | quote }}
     --simulation-timeout-ms {{ xian_simulation_timeout_ms | quote }}
     --simulation-max-chi {{ xian_simulation_max_chi | quote }}
+    --tx-fee-mode {{ xian_tx_fee_mode | quote }}
+    --free-tx-max-chi {{ xian_free_tx_max_chi | quote }}
+    --free-block-max-chi {{ xian_free_block_max_chi | quote }}
     --metrics-host {{ xian_metrics_host | quote }}
     --metrics-port {{ xian_metrics_port | quote }}
     --metrics-bds-refresh-seconds {{ xian_metrics_bds_refresh_seconds | quote }}
