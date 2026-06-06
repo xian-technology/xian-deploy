@@ -31,6 +31,6 @@ ansible-playbook -i inventories/<your>/hosts.yml playbooks/deploy.yml
 ansible-playbook -i inventories/<your>/hosts.yml playbooks/health.yml
 ```
 
-After the network is healthy, install optional contract packs or run example
-application bootstraps against the deployed RPC/BDS endpoints. Contract packs
-and application examples are post-start concerns; they are not deploy presets.
+After the network is healthy, run product repo or example application
+bootstraps against the deployed RPC/BDS endpoints. Product contracts and
+application examples are post-start concerns; they are not deploy presets.
