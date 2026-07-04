@@ -26,6 +26,11 @@ xian_genesis_time: ""
 xian_chain_id: ""
 xian_validator_private_key_hex: ""
 xian_snapshot_expected_chain_id: ""
+xian_state_snapshot_archive: ""
+xian_state_snapshot_sha256: ""
+xian_state_snapshot_expected_chain_id: ""
+xian_state_snapshot_expected_height: 0
+xian_state_snapshot_expected_app_hash: ""
 
 xian_bds_dsn: ""
 xian_bds_host: postgres

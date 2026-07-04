@@ -16,12 +16,39 @@
       ansible.builtin.include_role:
         name: xian_profile
 
-    - name: Validate state snapshot archive path
+    - name: Validate state snapshot restore pins
       ansible.builtin.assert:
         that:
           - xian_state_snapshot_archive is string
           - xian_state_snapshot_archive | length > 0
-        fail_msg: xian_state_snapshot_archive must point to a local snapshot tar.gz
+          - xian_state_snapshot_sha256 is string
+          - xian_state_snapshot_sha256 is match('^[0-9a-fA-F]{64}$')
+          - xian_state_snapshot_expected_chain_id is string
+          - xian_state_snapshot_expected_chain_id | length > 0
+          - (xian_state_snapshot_expected_height | int) > 0
+          - xian_state_snapshot_expected_app_hash is string
+          - (xian_state_snapshot_expected_app_hash | length == 0) or (xian_state_snapshot_expected_app_hash is match('^[0-9a-fA-F]{64}$'))
+        fail_msg: >-
+          State snapshot restore requires xian_state_snapshot_archive,
+          xian_state_snapshot_sha256, xian_state_snapshot_expected_chain_id,
+          and xian_state_snapshot_expected_height. Optionally pin
+          xian_state_snapshot_expected_app_hash.
+
+    - name: Validate local state snapshot archive checksum and metadata
+      ansible.builtin.command: >-
+        {{ (ansible_playbook_python | default('python3')) | quote }}
+        {{ (playbook_dir ~ '/../scripts/validate_state_snapshot_archive.py') | quote }}
+        --archive {{ xian_state_snapshot_archive | quote }}
+        --sha256 {{ xian_state_snapshot_sha256 | quote }}
+        --expected-chain-id {{ xian_state_snapshot_expected_chain_id | quote }}
+        --expected-height {{ xian_state_snapshot_expected_height | quote }}
+        {% if xian_state_snapshot_expected_app_hash | length > 0 %}
+        --expected-app-hash {{ xian_state_snapshot_expected_app_hash | quote }}
+        {% endif %}
+      delegate_to: localhost
+      become: false
+      changed_when: false
+      register: xian_state_snapshot_validation
   tasks:
     - name: Stop runtime before restore
       ansible.builtin.include_role:

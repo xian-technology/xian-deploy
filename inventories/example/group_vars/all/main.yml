@@ -21,6 +21,10 @@ xian_host_hardening_firewall_allowed_tcp_ports:
 xian_node_profile: /path/to/network/nodes/validator-1.json
 xian_node_home_archive: /path/to/node-home.tar.gz
 xian_state_snapshot_archive: ""
+xian_state_snapshot_sha256: ""
+xian_state_snapshot_expected_chain_id: ""
+xian_state_snapshot_expected_height: 0
+xian_state_snapshot_expected_app_hash: ""
 xian_node_home_replace: true
 
 # Optional deployment-only inputs. Runtime intent belongs in xian_node_profile.

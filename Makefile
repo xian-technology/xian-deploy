@@ -2,11 +2,15 @@ ANSIBLE ?= uvx --from ansible-core ansible-playbook
 ANSIBLE_INVENTORY_CMD ?= uvx --from ansible-core ansible-inventory
 ANSIBLE_LINT ?= uvx --from ansible-lint ansible-lint --profile min
 
-.PHONY: lint validate
+.PHONY: lint test validate
 lint:
 	$(ANSIBLE_LINT) playbooks roles inventories
 
+test:
+	python3 -m unittest discover -s tests
+
 validate:
+	$(MAKE) test
 	$(ANSIBLE_INVENTORY_CMD) -i inventories/example/hosts.yml --list >/dev/null
 	$(ANSIBLE) --syntax-check playbooks/bootstrap.yml
 	$(ANSIBLE) --syntax-check playbooks/push-home.yml
