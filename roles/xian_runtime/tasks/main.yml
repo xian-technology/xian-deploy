@@ -82,6 +82,82 @@
     - "{{ xian_bds_spool_dir }}"
   when: xian_runtime_action == "deploy"
 
+- name: Create runtime secret directory
+  ansible.builtin.file:
+    path: "{{ xian_runtime_secret_dir }}"
+    state: directory
+    mode: "0700"
+  when: xian_runtime_action == "deploy"
+
+- name: Render BDS runtime environment file
+  ansible.builtin.template:
+    src: bds.env.j2
+    dest: "{{ xian_bds_env_file }}"
+    mode: "0600"
+  no_log: true
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_bds_enabled | bool
+
+- name: Render BDS DSN file
+  ansible.builtin.copy:
+    dest: "{{ xian_bds_dsn_file }}"
+    content: "{{ xian_bds_dsn }}\n"
+    mode: "0600"
+  no_log: true
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_bds_enabled | bool
+
+- name: Render BDS Postgres password file
+  ansible.builtin.copy:
+    dest: "{{ xian_bds_password_file }}"
+    content: "{{ xian_bds_password }}\n"
+    mode: "0600"
+  no_log: true
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_bds_enabled | bool
+
+- name: Remove stale BDS secret files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ xian_bds_env_file }}"
+    - "{{ xian_bds_dsn_file }}"
+    - "{{ xian_bds_password_file }}"
+  no_log: true
+  when:
+    - xian_runtime_action == "deploy"
+    - not (xian_bds_enabled | bool)
+
+- name: Render validator private key file
+  ansible.builtin.copy:
+    dest: "{{ xian_validator_private_key_hex_file }}"
+    content: "{{ xian_validator_private_key_hex }}\n"
+    mode: "0600"
+  no_log: true
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_validator_private_key_hex | length > 0
+
+- name: Remove stale validator private key file
+  ansible.builtin.file:
+    path: "{{ xian_validator_private_key_hex_file }}"
+    state: absent
+  no_log: true
+  when:
+    - xian_runtime_action == "deploy"
+    - xian_validator_private_key_hex | length == 0
+
+- name: Render configure-node wrapper
+  ansible.builtin.template:
+    src: configure-node-wrapper.py.j2
+    dest: "{{ xian_configure_node_wrapper_path }}"
+    mode: "0644"
+  when: xian_runtime_action == "deploy"
+
 - name: Render main docker compose file
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -190,80 +266,14 @@
   ansible.builtin.shell: >-
     docker run --rm
     -v {{ xian_cometbft_home | quote }}:/root/.cometbft
+    -v {{ (xian_configure_node_wrapper_path ~ ':' ~ xian_container_configure_node_wrapper_path ~ ':ro') | quote }}
+    {% if (xian_bds_enabled | bool) or (xian_validator_private_key_hex | length > 0) %}
+    -v {{ (xian_runtime_secret_dir ~ ':' ~ xian_container_secret_dir ~ ':ro') | quote }}
+    {% endif %}
     -e XIAN_CONFIGS_DIR=/opt/xian-configs
     {{ xian_primary_image | quote }}
-    xian-configure-node
-    --moniker {{ xian_moniker | quote }}
-    {{ '--allow-cors' if xian_allow_cors else '--no-allow-cors' }}
-    {{ '--prometheus' if xian_cometbft_prometheus_enabled else '--no-prometheus' }}
-    {{ '--bds-enabled' if xian_bds_enabled else '--no-bds-enabled' }}
-    {{ '--enable-pruning' if xian_pruning_enabled else '--no-enable-pruning' }}
-    {{ '--statesync-enable' if xian_statesync_enable else '--no-statesync-enable' }}
-    {{ '--metrics-enabled' if xian_metrics_enabled else '--no-metrics-enabled' }}
-    {{ '--transaction-trace-logging' if xian_transaction_trace_logging else '--no-transaction-trace-logging' }}
-    {{ '--app-log-json' if xian_app_log_json else '--no-app-log-json' }}
-    {{ '--simulation-enabled' if xian_simulation_enabled else '--no-simulation-enabled' }}
-    {{ '--parallel-execution-enabled' if xian_parallel_execution_enabled else '--no-parallel-execution-enabled' }}
-    {{ '--parallel-execution-warm-workers' if xian_parallel_execution_warm_workers else '--no-parallel-execution-warm-workers' }}
-    {{ '--parallel-execution-access-estimates-enabled' if xian_parallel_execution_access_estimates_enabled else '--no-parallel-execution-access-estimates-enabled' }}
-    --blocks-to-keep {{ xian_blocks_to_keep | quote }}
-    --block-policy-mode {{ xian_block_policy_mode | quote }}
-    --block-policy-interval {{ xian_block_policy_interval | quote }}
-    --app-log-level {{ xian_app_log_level | quote }}
-    --app-log-rotation-hours {{ xian_app_log_rotation_hours | quote }}
-    --app-log-retention-days {{ xian_app_log_retention_days | quote }}
-    --simulation-max-concurrency {{ xian_simulation_max_concurrency | quote }}
-    --simulation-timeout-ms {{ xian_simulation_timeout_ms | quote }}
-    --simulation-max-chi {{ xian_simulation_max_chi | quote }}
-    --tx-fee-mode {{ xian_tx_fee_mode | quote }}
-    --free-tx-max-chi {{ xian_free_tx_max_chi | quote }}
-    --free-block-max-chi {{ xian_free_block_max_chi | quote }}
-    --metrics-host {{ xian_metrics_host | quote }}
-    --metrics-port {{ xian_metrics_port | quote }}
-    --metrics-bds-refresh-seconds {{ xian_metrics_bds_refresh_seconds | quote }}
-    --parallel-execution-workers {{ xian_parallel_execution_workers | quote }}
-    --parallel-execution-min-transactions {{ xian_parallel_execution_min_transactions | quote }}
-    --parallel-execution-max-speculative-waves {{ xian_parallel_execution_max_speculative_waves | quote }}
-    --parallel-execution-min-wave-acceptance-ratio {{ xian_parallel_execution_min_wave_acceptance_ratio | quote }}
-    --parallel-execution-low-acceptance-min-wave-size {{ xian_parallel_execution_low_acceptance_min_wave_size | quote }}
-    --pending-nonce-reservation-ttl-seconds {{ xian_pending_nonce_reservation_ttl_seconds | quote }}
-    --max-pending-nonces-per-sender {{ xian_max_pending_nonces_per_sender | quote }}
-    --bds-dsn {{ xian_bds_dsn | quote }}
-    --bds-host {{ (xian_bds_host if xian_bds_enabled else '') | quote }}
-    --bds-port {{ xian_bds_port | quote }}
-    --bds-database {{ xian_bds_database | quote }}
-    --bds-user {{ (xian_bds_user if xian_bds_enabled else '') | quote }}
-    --bds-password {{ (xian_bds_password if xian_bds_enabled else '') | quote }}
-    --bds-pool-min-size {{ xian_bds_pool_min_size | quote }}
-    --bds-pool-max-size {{ xian_bds_pool_max_size | quote }}
-    --bds-statement-timeout-ms {{ xian_bds_statement_timeout_ms | quote }}
-    --bds-acquire-timeout-ms {{ xian_bds_acquire_timeout_ms | quote }}
-    --bds-application-name {{ xian_bds_application_name | quote }}
-    --bds-queue-max-size {{ xian_bds_queue_max_size | quote }}
-    {{ '--bds-catchup-enabled' if (xian_bds_catchup_enabled | bool) else '--no-bds-catchup-enabled' }}
-    --bds-catchup-poll-seconds {{ xian_bds_catchup_poll_seconds | quote }}
-    --bds-rpc-url {{ xian_effective_bds_rpc_url | quote }}
-    --bds-spool-dir {{ (xian_bds_spool_dir if xian_bds_enabled else '') | quote }}
-    --bds-spool-warn-entries {{ xian_bds_spool_warn_entries | quote }}
-    --bds-spool-warn-bytes {{ xian_bds_spool_warn_bytes | quote }}
-    --bds-disk-free-warn-bytes {{ xian_bds_disk_free_warn_bytes | quote }}
-    {% if xian_genesis_source | length > 0 %} --genesis-source {{ xian_genesis_source | quote }} {% endif %}
-    {% if xian_genesis_bundle | length > 0 %} --genesis-bundle {{ xian_genesis_bundle | quote }} {% endif %}
-    {% if xian_chain_id | length > 0 %} --chain-id {{ xian_chain_id | quote }} {% endif %}
-    {% if xian_genesis_time | length > 0 %} --genesis-time {{ xian_genesis_time | quote }} {% endif %}
-    {% for seed in xian_discover_seeds %} --discover-seed {{ seed | quote }} {% endfor %}
-    {% for seed in xian_p2p_seeds %} --seed {{ seed | quote }} {% endfor %}
-    {% for peer in xian_p2p_persistent_peers %} --persistent-peer {{ peer | quote }} {% endfor %}
-    {% if xian_snapshot_url | length > 0 %} --snapshot-url {{ xian_snapshot_url | quote }} {% endif %}
-    {% if xian_snapshot_expected_chain_id | length > 0 %} --snapshot-expected-chain-id {{ xian_snapshot_expected_chain_id | quote }} {% endif %}
-    {% for key in xian_snapshot_signing_keys %} --snapshot-signing-key {{ key | quote }} {% endfor %}
-    {% if xian_validator_private_key_hex | length > 0 %} --validator-privkey {{ xian_validator_private_key_hex | quote }} {% endif %}
-    {% for server in xian_statesync_rpc_servers %} --statesync-rpc-server {{ server | quote }} {% endfor %}
-    {% if xian_statesync_enable %}
-    --statesync-trust-height {{ xian_statesync_trust_height | quote }}
-    --statesync-trust-hash {{ xian_statesync_trust_hash | quote }}
-    --statesync-trust-period {{ xian_statesync_trust_period | quote }}
-    {% endif %}
+    python {{ xian_container_configure_node_wrapper_path | quote }}
+  no_log: true
   when: xian_runtime_action == "deploy"
 
 - name: Start or update runtime

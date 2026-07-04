@@ -34,6 +34,19 @@ vars_files:
   - secrets/validator-keys.vault.yml
 ```
 
+When BDS is enabled, set `xian_bds_password` from a vault or secret manager.
+The deploy role rejects empty or weak example passwords. On the remote host it
+writes BDS runtime secrets, including DSNs that may contain credentials, under
+`xian_runtime_secret_dir` with directory mode `0700` and file mode `0600`;
+rendered Compose files only reference those file paths. Do not edit or commit
+generated files such as `bds.env`, `bds-dsn`, `bds-password`, or
+`validator-private-key.hex`.
+
+Prefer preparing validator keys in the node-home archive. If
+`xian_validator_private_key_hex` is supplied for a deployment, load it from a
+vault; the role writes it to a private remote file and passes it to the
+configure wrapper without exposing the key in host command-line arguments.
+
 ## Operator Checks
 
 Before pushing deployment changes:

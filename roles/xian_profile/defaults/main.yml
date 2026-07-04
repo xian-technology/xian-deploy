@@ -1,6 +1,17 @@
 ---
 xian_deploy_root: /srv/xian
 xian_runtime_dir: "{{ xian_deploy_root }}/runtime"
+xian_runtime_secret_dir: "{{ xian_runtime_dir }}/secrets"
+xian_bds_env_file: "{{ xian_runtime_secret_dir }}/bds.env"
+xian_bds_dsn_file: "{{ xian_runtime_secret_dir }}/bds-dsn"
+xian_bds_password_file: "{{ xian_runtime_secret_dir }}/bds-password"
+xian_validator_private_key_hex_file: "{{ xian_runtime_secret_dir }}/validator-private-key.hex"
+xian_configure_node_wrapper_path: "{{ xian_runtime_dir }}/configure-node.py"
+xian_container_secret_dir: /run/xian-deploy-secrets
+xian_container_bds_dsn_file: "{{ xian_container_secret_dir }}/bds-dsn"
+xian_container_bds_password_file: "{{ xian_container_secret_dir }}/bds-password"
+xian_container_validator_private_key_hex_file: "{{ xian_container_secret_dir }}/validator-private-key.hex"
+xian_container_configure_node_wrapper_path: /tmp/xian-configure-node.py
 xian_cometbft_home: "{{ xian_deploy_root }}/node-home/.cometbft"
 xian_bds_data_dir: "{{ xian_deploy_root }}/bds/postgres"
 xian_bds_spool_dir: "{{ xian_deploy_root }}/bds/spool"
@@ -21,7 +32,7 @@ xian_bds_host: postgres
 xian_bds_port: 5432
 xian_bds_database: xian
 xian_bds_user: xian
-xian_bds_password: xian
+xian_bds_password: ""
 xian_bds_pool_min_size: 1
 xian_bds_pool_max_size: 10
 xian_bds_statement_timeout_ms: 0

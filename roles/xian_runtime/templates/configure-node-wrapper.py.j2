@@ -1,0 +1,123 @@
+from pathlib import Path
+
+from xian.cli.configure_node import main
+
+
+args = []
+
+
+def add(*values):
+    args.extend(str(value) for value in values)
+
+
+def add_secret_file(flag, path, include_empty=False):
+    secret = Path(path).read_text(encoding="utf-8").strip()
+    if secret or include_empty:
+        add(flag, secret)
+
+
+add("--moniker", {{ xian_moniker | to_json }})
+add({{ ('--allow-cors' if xian_allow_cors else '--no-allow-cors') | to_json }})
+add({{ ('--prometheus' if xian_cometbft_prometheus_enabled else '--no-prometheus') | to_json }})
+add({{ ('--bds-enabled' if xian_bds_enabled else '--no-bds-enabled') | to_json }})
+add({{ ('--enable-pruning' if xian_pruning_enabled else '--no-enable-pruning') | to_json }})
+add({{ ('--statesync-enable' if xian_statesync_enable else '--no-statesync-enable') | to_json }})
+add({{ ('--metrics-enabled' if xian_metrics_enabled else '--no-metrics-enabled') | to_json }})
+add({{ ('--transaction-trace-logging' if xian_transaction_trace_logging else '--no-transaction-trace-logging') | to_json }})
+add({{ ('--app-log-json' if xian_app_log_json else '--no-app-log-json') | to_json }})
+add({{ ('--simulation-enabled' if xian_simulation_enabled else '--no-simulation-enabled') | to_json }})
+add({{ ('--parallel-execution-enabled' if xian_parallel_execution_enabled else '--no-parallel-execution-enabled') | to_json }})
+add({{ ('--parallel-execution-warm-workers' if xian_parallel_execution_warm_workers else '--no-parallel-execution-warm-workers') | to_json }})
+add({{ ('--parallel-execution-access-estimates-enabled' if xian_parallel_execution_access_estimates_enabled else '--no-parallel-execution-access-estimates-enabled') | to_json }})
+add("--blocks-to-keep", {{ xian_blocks_to_keep | to_json }})
+add("--block-policy-mode", {{ xian_block_policy_mode | to_json }})
+add("--block-policy-interval", {{ xian_block_policy_interval | to_json }})
+add("--app-log-level", {{ xian_app_log_level | to_json }})
+add("--app-log-rotation-hours", {{ xian_app_log_rotation_hours | to_json }})
+add("--app-log-retention-days", {{ xian_app_log_retention_days | to_json }})
+add("--simulation-max-concurrency", {{ xian_simulation_max_concurrency | to_json }})
+add("--simulation-timeout-ms", {{ xian_simulation_timeout_ms | to_json }})
+add("--simulation-max-chi", {{ xian_simulation_max_chi | to_json }})
+add("--tx-fee-mode", {{ xian_tx_fee_mode | to_json }})
+add("--free-tx-max-chi", {{ xian_free_tx_max_chi | to_json }})
+add("--free-block-max-chi", {{ xian_free_block_max_chi | to_json }})
+add("--metrics-host", {{ xian_metrics_host | to_json }})
+add("--metrics-port", {{ xian_metrics_port | to_json }})
+add("--metrics-bds-refresh-seconds", {{ xian_metrics_bds_refresh_seconds | to_json }})
+add("--parallel-execution-workers", {{ xian_parallel_execution_workers | to_json }})
+add("--parallel-execution-min-transactions", {{ xian_parallel_execution_min_transactions | to_json }})
+add("--parallel-execution-max-speculative-waves", {{ xian_parallel_execution_max_speculative_waves | to_json }})
+add("--parallel-execution-min-wave-acceptance-ratio", {{ xian_parallel_execution_min_wave_acceptance_ratio | to_json }})
+add("--parallel-execution-low-acceptance-min-wave-size", {{ xian_parallel_execution_low_acceptance_min_wave_size | to_json }})
+add("--pending-nonce-reservation-ttl-seconds", {{ xian_pending_nonce_reservation_ttl_seconds | to_json }})
+add("--max-pending-nonces-per-sender", {{ xian_max_pending_nonces_per_sender | to_json }})
+{% if xian_bds_enabled %}
+add_secret_file("--bds-dsn", {{ xian_container_bds_dsn_file | to_json }}, include_empty=True)
+{% else %}
+add("--bds-dsn", "")
+{% endif %}
+add("--bds-host", {{ (xian_bds_host if xian_bds_enabled else '') | to_json }})
+add("--bds-port", {{ xian_bds_port | to_json }})
+add("--bds-database", {{ xian_bds_database | to_json }})
+add("--bds-user", {{ (xian_bds_user if xian_bds_enabled else '') | to_json }})
+{% if xian_bds_enabled %}
+add_secret_file("--bds-password", {{ xian_container_bds_password_file | to_json }})
+{% else %}
+add("--bds-password", "")
+{% endif %}
+add("--bds-pool-min-size", {{ xian_bds_pool_min_size | to_json }})
+add("--bds-pool-max-size", {{ xian_bds_pool_max_size | to_json }})
+add("--bds-statement-timeout-ms", {{ xian_bds_statement_timeout_ms | to_json }})
+add("--bds-acquire-timeout-ms", {{ xian_bds_acquire_timeout_ms | to_json }})
+add("--bds-application-name", {{ xian_bds_application_name | to_json }})
+add("--bds-queue-max-size", {{ xian_bds_queue_max_size | to_json }})
+add({{ ('--bds-catchup-enabled' if (xian_bds_catchup_enabled | bool) else '--no-bds-catchup-enabled') | to_json }})
+add("--bds-catchup-poll-seconds", {{ xian_bds_catchup_poll_seconds | to_json }})
+add("--bds-rpc-url", {{ xian_effective_bds_rpc_url | to_json }})
+add("--bds-spool-dir", {{ (xian_bds_spool_dir if xian_bds_enabled else '') | to_json }})
+add("--bds-spool-warn-entries", {{ xian_bds_spool_warn_entries | to_json }})
+add("--bds-spool-warn-bytes", {{ xian_bds_spool_warn_bytes | to_json }})
+add("--bds-disk-free-warn-bytes", {{ xian_bds_disk_free_warn_bytes | to_json }})
+{% if xian_genesis_source | length > 0 %}
+add("--genesis-source", {{ xian_genesis_source | to_json }})
+{% endif %}
+{% if xian_genesis_bundle | length > 0 %}
+add("--genesis-bundle", {{ xian_genesis_bundle | to_json }})
+{% endif %}
+{% if xian_chain_id | length > 0 %}
+add("--chain-id", {{ xian_chain_id | to_json }})
+{% endif %}
+{% if xian_genesis_time | length > 0 %}
+add("--genesis-time", {{ xian_genesis_time | to_json }})
+{% endif %}
+{% for seed in xian_discover_seeds %}
+add("--discover-seed", {{ seed | to_json }})
+{% endfor %}
+{% for seed in xian_p2p_seeds %}
+add("--seed", {{ seed | to_json }})
+{% endfor %}
+{% for peer in xian_p2p_persistent_peers %}
+add("--persistent-peer", {{ peer | to_json }})
+{% endfor %}
+{% if xian_snapshot_url | length > 0 %}
+add("--snapshot-url", {{ xian_snapshot_url | to_json }})
+{% endif %}
+{% if xian_snapshot_expected_chain_id | length > 0 %}
+add("--snapshot-expected-chain-id", {{ xian_snapshot_expected_chain_id | to_json }})
+{% endif %}
+{% for key in xian_snapshot_signing_keys %}
+add("--snapshot-signing-key", {{ key | to_json }})
+{% endfor %}
+{% if xian_validator_private_key_hex | length > 0 %}
+add_secret_file("--validator-privkey", {{ xian_container_validator_private_key_hex_file | to_json }})
+{% endif %}
+{% for server in xian_statesync_rpc_servers %}
+add("--statesync-rpc-server", {{ server | to_json }})
+{% endfor %}
+{% if xian_statesync_enable %}
+add("--statesync-trust-height", {{ xian_statesync_trust_height | to_json }})
+add("--statesync-trust-hash", {{ xian_statesync_trust_hash | to_json }})
+add("--statesync-trust-period", {{ xian_statesync_trust_period | to_json }})
+{% endif %}
+
+raise SystemExit(main(args))

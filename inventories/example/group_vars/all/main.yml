@@ -29,9 +29,10 @@ xian_chain_id: ""
 xian_snapshot_expected_chain_id: ""
 xian_validator_private_key_hex: ""
 
-# Store real values in a private inventory or vault.
+# Store real values in a private inventory or vault. BDS deployments require a
+# non-empty password that is not a weak example value.
 xian_bds_user: xian
-xian_bds_password: xian
+# xian_bds_password: "{{ vault_xian_bds_password }}"
 
 xian_rpc_bind_host: 0.0.0.0
 xian_rpc_port: 26657

@@ -301,16 +301,29 @@
     xian_monitoring_alert_variant: "{{ xian_operator_profile if xian_operator_profile in ['shared_network'] else 'none' }}"
 
 - name: Validate derived profile runtime settings
+  vars:
+    xian_weak_bds_passwords:
+      - xian
+      - password
+      - postgres
+      - changeme
+      - change-me
+      - example
+      - secret
   ansible.builtin.assert:
     that:
       - "xian_deploy_topology in ['integrated', 'fidelity']"
       - "not (xian_parallel_execution_enabled | bool) or (xian_parallel_execution_workers | int > 0)"
       - "not (xian_bds_enabled | bool) or (xian_bds_dsn | length > 0) or ((xian_bds_host | length > 0) and (xian_bds_database | length > 0) and (xian_bds_user | length > 0) and (xian_bds_password | length > 0))"
+      - "not (xian_bds_enabled | bool) or (xian_bds_password | length > 0)"
+      - "not (xian_bds_enabled | bool) or ((xian_bds_password | lower) not in xian_weak_bds_passwords)"
+      - "(xian_validator_private_key_hex | length == 0) or (xian_validator_private_key_hex is match('^[0-9a-fA-F]{64}$'))"
       - "not (xian_statesync_enable | bool) or (xian_statesync_rpc_servers | length >= 2)"
       - "not (xian_statesync_enable | bool) or (xian_statesync_trust_height | int > 0)"
       - "not (xian_statesync_enable | bool) or (xian_statesync_trust_hash | length > 0)"
       - "not (xian_statesync_enable | bool) or (xian_statesync_trust_period | length > 0)"
     fail_msg: >-
       The node profile produced an invalid remote runtime. Check the profile
-      services, advanced state-sync settings, BDS deployment bindings, and
-      xian_deploy_topology.
+      services, advanced state-sync settings, BDS deployment bindings,
+      validator key material, and xian_deploy_topology. BDS deployments must
+      provide a non-empty password that is not a weak example value.

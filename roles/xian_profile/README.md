@@ -12,6 +12,10 @@ policy, pruning, logging, metrics, state sync, P2P peers, snapshots, and node
 images. Inventory still owns deployment bindings such as remote paths, host
 port publishing, topology, and secrets.
 
+BDS deployments must provide `xian_bds_password` from a private inventory,
+vault, or secret manager. Empty values and weak example passwords are rejected
+before runtime files are rendered.
+
 By default, remote runtime paths are derived from `xian_deploy_root`:
 `xian_runtime_dir`, `xian_cometbft_home`, `xian_bds_data_dir`,
 `xian_bds_spool_dir`, and `xian_monitoring_dir`. Private inventories should
