@@ -314,10 +314,17 @@
       - "127.0.0.1"
       - "localhost"
       - "::1"
+      - "0:0:0:0:0:0:0:1"
+      - "0000:0000:0000:0000:0000:0000:0000:0001"
+      - "ip6-localhost"
+      - "ip6-loopback"
+      - "localhost6"
+    xian_normalized_prometheus_bind_host: "{{ xian_prometheus_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1') | lower }}"
+    xian_normalized_grafana_bind_host: "{{ xian_grafana_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1') | lower }}"
     xian_monitoring_uses_public_bind: >-
       {{
-        (xian_prometheus_bind_host not in xian_loopback_bind_hosts)
-        or (xian_grafana_bind_host not in xian_loopback_bind_hosts)
+        (xian_normalized_prometheus_bind_host not in xian_loopback_bind_hosts)
+        or (xian_normalized_grafana_bind_host not in xian_loopback_bind_hosts)
       }}
     xian_digest_pinned_image_ref_pattern: '^.+@sha256:[0-9a-fA-F]{64}$'
     xian_digest_pinned_third_party_required: >-

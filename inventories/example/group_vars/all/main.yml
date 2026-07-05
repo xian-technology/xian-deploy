@@ -38,6 +38,8 @@ xian_validator_private_key_hex: ""
 xian_bds_user: xian
 # xian_bds_password: "{{ vault_xian_bds_password }}"
 
+# Bind hosts may be IPv4 or IPv6 literals. Use unbracketed IPv6 values such as
+# "::1" or "2001:db8::10"; the Compose templates publish ports with long syntax.
 xian_rpc_bind_host: 0.0.0.0
 xian_rpc_port: 26657
 xian_p2p_bind_host: 0.0.0.0

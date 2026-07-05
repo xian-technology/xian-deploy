@@ -21,7 +21,10 @@ services:
     networks:
       - xian-net
     ports:
-      - {{ (xian_prometheus_bind_host ~ ':' ~ xian_prometheus_port ~ ':9090') | to_json }}
+      - target: 9090
+        published: {{ (xian_prometheus_port | string) | to_json }}
+        host_ip: {{ (xian_prometheus_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
 
   grafana:
     image: {{ xian_grafana_image | to_json }}
@@ -42,4 +45,7 @@ services:
     networks:
       - xian-net
     ports:
-      - {{ (xian_grafana_bind_host ~ ':' ~ xian_grafana_port ~ ':3000') | to_json }}
+      - target: 3000
+        published: {{ (xian_grafana_port | string) | to_json }}
+        host_ip: {{ (xian_grafana_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp

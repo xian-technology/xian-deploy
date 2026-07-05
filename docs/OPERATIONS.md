@@ -101,6 +101,11 @@ behind authenticated TLS reverse-proxy access or equivalent host/network
 controls. Prometheus lifecycle/admin endpoints are not enabled by the deploy
 compose template.
 
+Bind hosts may be IPv4 or IPv6 literals. Prefer unbracketed IPv6 values such as
+`::1` or `2001:db8::10` in inventory; the Compose templates render long-form
+port publications with `host_ip`, so IPv6 colons are not parsed as port
+separators.
+
 ## VM Mismatch Alert Response
 
 Treat `XianVmShadowMismatchDetected` as a rollout-integrity alert.

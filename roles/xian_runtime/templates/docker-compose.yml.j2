@@ -47,10 +47,22 @@ services:
       - xian-db
 {% endif %}
     ports:
-      - {{ (xian_rpc_bind_host ~ ':' ~ xian_rpc_port ~ ':26657') | to_json }}
-      - {{ (xian_p2p_bind_host ~ ':' ~ xian_p2p_port ~ ':26656') | to_json }}
-      - {{ (xian_comet_metrics_bind_host ~ ':' ~ xian_comet_metrics_port ~ ':26660') | to_json }}
-      - {{ (xian_app_metrics_bind_host ~ ':' ~ xian_metrics_port ~ ':' ~ xian_metrics_port) | to_json }}
+      - target: 26657
+        published: {{ (xian_rpc_port | string) | to_json }}
+        host_ip: {{ (xian_rpc_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
+      - target: 26656
+        published: {{ (xian_p2p_port | string) | to_json }}
+        host_ip: {{ (xian_p2p_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
+      - target: 26660
+        published: {{ (xian_comet_metrics_port | string) | to_json }}
+        host_ip: {{ (xian_comet_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
+      - target: {{ xian_metrics_port | int }}
+        published: {{ (xian_metrics_port | string) | to_json }}
+        host_ip: {{ (xian_app_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
 {% if xian_dashboard_enabled %}
 
   dashboard:
@@ -77,7 +89,10 @@ services:
     networks:
       - xian-net
     ports:
-      - {{ (xian_dashboard_bind_host ~ ':' ~ xian_dashboard_port ~ ':8080') | to_json }}
+      - target: 8080
+        published: {{ (xian_dashboard_port | string) | to_json }}
+        host_ip: {{ (xian_dashboard_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
 {% endif %}
 {% else %}
   abci-app:
@@ -109,7 +124,10 @@ services:
       - xian-db
 {% endif %}
     ports:
-      - {{ (xian_app_metrics_bind_host ~ ':' ~ xian_metrics_port ~ ':' ~ xian_metrics_port) | to_json }}
+      - target: {{ xian_metrics_port | int }}
+        published: {{ (xian_metrics_port | string) | to_json }}
+        host_ip: {{ (xian_app_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
 
   cometbft:
     image: {{ xian_node_image_split | to_json }}
@@ -125,9 +143,18 @@ services:
     networks:
       - xian-net
     ports:
-      - {{ (xian_rpc_bind_host ~ ':' ~ xian_rpc_port ~ ':26657') | to_json }}
-      - {{ (xian_p2p_bind_host ~ ':' ~ xian_p2p_port ~ ':26656') | to_json }}
-      - {{ (xian_comet_metrics_bind_host ~ ':' ~ xian_comet_metrics_port ~ ':26660') | to_json }}
+      - target: 26657
+        published: {{ (xian_rpc_port | string) | to_json }}
+        host_ip: {{ (xian_rpc_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
+      - target: 26656
+        published: {{ (xian_p2p_port | string) | to_json }}
+        host_ip: {{ (xian_p2p_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
+      - target: 26660
+        published: {{ (xian_comet_metrics_port | string) | to_json }}
+        host_ip: {{ (xian_comet_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
 {% if xian_dashboard_enabled %}
 
   dashboard:
@@ -154,7 +181,10 @@ services:
     networks:
       - xian-net
     ports:
-      - {{ (xian_dashboard_bind_host ~ ':' ~ xian_dashboard_port ~ ':8080') | to_json }}
+      - target: 8080
+        published: {{ (xian_dashboard_port | string) | to_json }}
+        host_ip: {{ (xian_dashboard_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
+        protocol: tcp
 {% endif %}
 {% endif %}
 {% if xian_bds_enabled %}
