@@ -49,6 +49,8 @@ xian_prometheus_bind_host: 127.0.0.1
 xian_prometheus_port: 9090
 xian_grafana_bind_host: 127.0.0.1
 xian_grafana_port: 3000
+xian_public_monitoring_enabled: false
+xian_monitoring_public_auth_confirmed: false
 
 xian_perf_enabled: true
 xian_perf_recent_blocks: 64

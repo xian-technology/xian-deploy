@@ -53,3 +53,5 @@ xian_bds_disk_free_warn_bytes: 2147483648
 
 xian_dashboard_bind_host: 127.0.0.1
 xian_dashboard_port: 8080
+xian_public_monitoring_enabled: false
+xian_monitoring_public_auth_confirmed: false

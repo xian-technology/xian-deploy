@@ -79,6 +79,14 @@ automatically. Use it as the starting point when you want:
 - BDS recovery alerts routed to an operator or storage/on-call receiver
 - infrastructure-critical alerts separated from warning-grade operational noise
 
+Prometheus and Grafana bind to loopback by default. If a private inventory binds
+either service to a non-loopback address, set both
+`xian_public_monitoring_enabled=true` and
+`xian_monitoring_public_auth_confirmed=true` after placing the published ports
+behind authenticated TLS reverse-proxy access or equivalent host/network
+controls. Prometheus lifecycle/admin endpoints are not enabled by the deploy
+compose template.
+
 ## VM Mismatch Alert Response
 
 Treat `XianVmShadowMismatchDetected` as a rollout-integrity alert.

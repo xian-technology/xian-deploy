@@ -310,6 +310,15 @@
       - change-me
       - example
       - secret
+    xian_loopback_bind_hosts:
+      - "127.0.0.1"
+      - "localhost"
+      - "::1"
+    xian_monitoring_uses_public_bind: >-
+      {{
+        (xian_prometheus_bind_host not in xian_loopback_bind_hosts)
+        or (xian_grafana_bind_host not in xian_loopback_bind_hosts)
+      }}
   ansible.builtin.assert:
     that:
       - "xian_deploy_topology in ['integrated', 'fidelity']"
@@ -322,8 +331,18 @@
       - "not (xian_statesync_enable | bool) or (xian_statesync_trust_height | int > 0)"
       - "not (xian_statesync_enable | bool) or (xian_statesync_trust_hash | length > 0)"
       - "not (xian_statesync_enable | bool) or (xian_statesync_trust_period | length > 0)"
+      - >-
+        not (xian_monitoring_enabled | bool)
+        or not (xian_monitoring_uses_public_bind | bool)
+        or (xian_public_monitoring_enabled | bool)
+      - >-
+        not (xian_monitoring_enabled | bool)
+        or not (xian_monitoring_uses_public_bind | bool)
+        or (xian_monitoring_public_auth_confirmed | bool)
     fail_msg: >-
       The node profile produced an invalid remote runtime. Check the profile
       services, advanced state-sync settings, BDS deployment bindings,
       validator key material, and xian_deploy_topology. BDS deployments must
-      provide a non-empty password that is not a weak example value.
+      provide a non-empty password that is not a weak example value. Public
+      monitoring binds require xian_public_monitoring_enabled=true and
+      xian_monitoring_public_auth_confirmed=true.
