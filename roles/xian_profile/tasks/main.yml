@@ -319,6 +319,12 @@
         (xian_prometheus_bind_host not in xian_loopback_bind_hosts)
         or (xian_grafana_bind_host not in xian_loopback_bind_hosts)
       }}
+    xian_digest_pinned_image_ref_pattern: '^.+@sha256:[0-9a-fA-F]{64}$'
+    xian_digest_pinned_third_party_required: >-
+      {{
+        (xian_require_digest_pinned_third_party_images | bool)
+        or (xian_operator_profile == 'shared_network')
+      }}
   ansible.builtin.assert:
     that:
       - "xian_deploy_topology in ['integrated', 'fidelity']"
@@ -339,10 +345,24 @@
         not (xian_monitoring_enabled | bool)
         or not (xian_monitoring_uses_public_bind | bool)
         or (xian_monitoring_public_auth_confirmed | bool)
+      - >-
+        not (xian_digest_pinned_third_party_required | bool)
+        or not (xian_bds_enabled | bool)
+        or (xian_postgres_image is match(xian_digest_pinned_image_ref_pattern))
+      - >-
+        not (xian_digest_pinned_third_party_required | bool)
+        or not (xian_monitoring_enabled | bool)
+        or (xian_prometheus_image is match(xian_digest_pinned_image_ref_pattern))
+      - >-
+        not (xian_digest_pinned_third_party_required | bool)
+        or not (xian_monitoring_enabled | bool)
+        or (xian_grafana_image is match(xian_digest_pinned_image_ref_pattern))
     fail_msg: >-
       The node profile produced an invalid remote runtime. Check the profile
       services, advanced state-sync settings, BDS deployment bindings,
       validator key material, and xian_deploy_topology. BDS deployments must
       provide a non-empty password that is not a weak example value. Public
       monitoring binds require xian_public_monitoring_enabled=true and
-      xian_monitoring_public_auth_confirmed=true.
+      xian_monitoring_public_auth_confirmed=true. Shared-network or otherwise
+      strict production deployments must use digest-pinned Postgres,
+      Prometheus, and Grafana image refs for each enabled service.

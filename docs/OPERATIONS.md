@@ -63,6 +63,20 @@ What it checks:
 Use `playbooks/smoke.yml` for a lighter post-deploy sanity check. Use
 `playbooks/health.yml` when you need a more complete remote diagnosis.
 
+## Third-Party Service Images
+
+Remote shared-network deployments require digest-pinned third-party service
+images for each enabled service:
+
+- `xian_postgres_image` when BDS/Postgres is enabled
+- `xian_prometheus_image` and `xian_grafana_image` when monitoring is enabled
+
+Use image references such as `postgres:17@sha256:<digest>` or
+`prom/prometheus:v3.10.0@sha256:<digest>`. Local-development and example
+inventories may keep tag-only defaults. Private inventories can require the
+same strict behavior outside shared-network profiles by setting
+`xian_require_digest_pinned_third_party_images=true`.
+
 ## Monitoring And Alerts
 
 When monitoring is enabled, the runtime now stages:
