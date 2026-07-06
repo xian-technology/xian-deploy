@@ -59,9 +59,9 @@ xian_perf_enabled: true
 xian_perf_recent_blocks: 64
 xian_s6_verbosity: 1
 
-xian_postgres_image: postgres:17
-xian_prometheus_image: prom/prometheus:v3.10.0
-xian_grafana_image: grafana/grafana:12.2.0
+xian_postgres_image: postgres:17.10
+xian_prometheus_image: prom/prometheus:v3.12.0
+xian_grafana_image: grafana/grafana:12.4.5
 
 xian_integrated_memory_limit: 2048m
 xian_integrated_memory_reservation: 1024m
