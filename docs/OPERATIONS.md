@@ -5,6 +5,11 @@ This file records the concrete operator runbooks for `xian-deploy`.
 For example inventory shapes, see [EXAMPLES.md](EXAMPLES.md).
 For secret handling, see [SECRETS.md](SECRETS.md).
 
+The remote configuration container overrides the node image's entrypoint with
+Python. It only writes configuration; it must not start the integrated image's
+supervisor or validator services. The Compose runtime starts after configuration
+succeeds.
+
 ## Local Validation
 
 Run both checks before opening a deploy change:

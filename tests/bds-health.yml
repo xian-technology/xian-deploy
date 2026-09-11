@@ -1,0 +1,27 @@
+---
+- name: Check BDS health expressions against runtime error values
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    xian_health_expected_services: [abci, postgres]
+    xian_running_services: [abci, postgres]
+    xian_health_rpc: {failed: false}
+    xian_metrics_enabled: false
+    xian_dashboard_enabled: false
+    xian_monitoring_enabled: false
+    xian_bds_enabled: true
+    xian_health_bds_raw: {failed: false}
+    xian_health_disk: {stdout: '{"alerts": []}'}
+    xian_health_bds: "{{ {'db_status': 'ok', 'worker_running': true} | combine(item.payload) }}"
+  tasks:
+    - name: Classify missing, null, empty, and populated enqueue errors
+      ansible.builtin.assert:
+        that:
+          - (rendered_state | trim) == item.state
+          - (rendered_bds_ok | bool) == item.ok
+      loop:
+        - {payload: {}, state: healthy, ok: true}
+        - {payload: {last_enqueue_error: null}, state: healthy, ok: true}
+        - {payload: {last_enqueue_error: ''}, state: healthy, ok: true}
+        - {payload: {last_enqueue_error: 'disk full'}, state: degraded, ok: false}

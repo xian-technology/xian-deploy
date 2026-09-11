@@ -265,6 +265,7 @@
 - name: Configure remote node home
   ansible.builtin.shell: >-
     docker run --rm
+    --entrypoint python
     -v {{ xian_cometbft_home | quote }}:/root/.cometbft
     -v {{ (xian_configure_node_wrapper_path ~ ':' ~ xian_container_configure_node_wrapper_path ~ ':ro') | quote }}
     {% if (xian_bds_enabled | bool) or (xian_validator_private_key_hex | length > 0) %}
@@ -272,7 +273,7 @@
     {% endif %}
     -e XIAN_CONFIGS_DIR=/opt/xian-configs
     {{ xian_primary_image | quote }}
-    python {{ xian_container_configure_node_wrapper_path | quote }}
+    {{ xian_container_configure_node_wrapper_path | quote }}
   no_log: true
   when: xian_runtime_action == "deploy"
 

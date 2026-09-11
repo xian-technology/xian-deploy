@@ -11,6 +11,7 @@ test:
 
 validate:
 	$(MAKE) test
+	uvx --from ansible-core python tests/check_bds_health.py
 	$(ANSIBLE_INVENTORY_CMD) -i inventories/example/hosts.yml --list >/dev/null
 	$(ANSIBLE) --syntax-check playbooks/bootstrap.yml
 	$(ANSIBLE) --syntax-check playbooks/push-home.yml

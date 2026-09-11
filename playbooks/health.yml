@@ -227,7 +227,7 @@
                 (xian_health_bds_raw is defined and (xian_health_bds_raw.failed | default(false)))
                 or (xian_health_bds is defined and (xian_health_bds.db_status | default('error')) != 'ok')
                 or (xian_health_bds is defined and not (xian_health_bds.worker_running | default(false)))
-                or (xian_health_bds is defined and (xian_health_bds.last_enqueue_error | default('') | length > 0))
+                or (xian_health_bds is defined and (xian_health_bds.last_enqueue_error | default('', true) | length > 0))
               ))
               or ((xian_health_disk.stdout | default('') | length > 0) and (((xian_health_disk.stdout | from_json).alerts | default([])) | length > 0))
             ) %}
@@ -302,7 +302,7 @@
                     and not (xian_health_bds_raw.failed | default(false))
                     and (xian_health_bds.db_status | default('error')) == 'ok'
                     and (xian_health_bds.worker_running | default(false))
-                    and ((xian_health_bds.last_enqueue_error | default('')) | length == 0)
+                    and ((xian_health_bds.last_enqueue_error | default('', true)) | length == 0)
                   )
                 }}
               detail: >-
