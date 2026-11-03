@@ -204,3 +204,20 @@ Required profile settings:
 
 This path reuses the normal remote deploy role, but it validates the state-sync
 profile settings first and prints a focused summary afterward.
+
+## Log Retention
+
+Rendered Compose services use Docker's `local` logging driver in blocking mode.
+Inventory bindings `xian_docker_log_max_file_mb` (default 50) and
+`xian_docker_log_max_files` (default 5) must be positive integers. All node, BDS,
+dashboard and monitoring containers receive the policy. Recreate containers
+through deployment to adopt changed logging settings. This limits retained
+stdout/stderr by size and file count; Docker does not provide a seven-day age
+limit with this driver. Never truncate Docker-managed log files manually.
+
+The node profile independently controls application-file retention:
+`app_log_retention_days` defaults to 7, `app_log_max_file_mb` to 50 and
+`app_log_max_total_mb` to 250. The deployment wrapper forwards these settings to
+`xian-configure-node`. These application files can expire earlier under size
+pressure. This repo installs Docker Compose services, not native Xian systemd
+units, and does not change global host journald retention.

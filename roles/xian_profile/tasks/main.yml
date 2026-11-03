@@ -98,6 +98,8 @@
       - app_log_json
       - app_log_rotation_hours
       - app_log_retention_days
+      - app_log_max_file_mb
+      - app_log_max_total_mb
       - simulation_enabled
       - simulation_max_concurrency
       - simulation_timeout_ms
@@ -250,6 +252,8 @@
     xian_app_log_json: "{{ xian_profile.get('app_log_json', false) | bool }}"
     xian_app_log_rotation_hours: "{{ xian_profile.get('app_log_rotation_hours', 1) | int }}"
     xian_app_log_retention_days: "{{ xian_profile.get('app_log_retention_days', 7) | int }}"
+    xian_app_log_max_file_mb: "{{ xian_profile.get('app_log_max_file_mb', 50) | int }}"
+    xian_app_log_max_total_mb: "{{ xian_profile.get('app_log_max_total_mb', 250) | int }}"
     xian_simulation_enabled: "{{ xian_profile.get('simulation_enabled', true) | bool }}"
     xian_simulation_max_concurrency: "{{ xian_profile.get('simulation_max_concurrency', 2) | int }}"
     xian_simulation_timeout_ms: "{{ xian_profile.get('simulation_timeout_ms', 3000) | int }}"

@@ -1,3 +1,10 @@
+x-logging: &x-logging
+  driver: local
+  options:
+    max-size: "{{ xian_docker_log_max_file_mb | int }}m"
+    max-file: "{{ xian_docker_log_max_files | int }}"
+    mode: blocking
+
 networks:
   xian-net:
     internal: false
@@ -7,6 +14,7 @@ volumes:
 
 services:
   prometheus:
+    logging: *x-logging
     image: {{ xian_prometheus_image | to_json }}
     restart: always
     hostname: {{ xian_project_name }}-prometheus
@@ -27,6 +35,7 @@ services:
         protocol: tcp
 
   grafana:
+    logging: *x-logging
     image: {{ xian_grafana_image | to_json }}
     restart: always
     hostname: {{ xian_project_name }}-grafana

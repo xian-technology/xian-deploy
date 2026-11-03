@@ -1,3 +1,10 @@
+x-logging: &x-logging
+  driver: local
+  options:
+    max-size: "{{ xian_docker_log_max_file_mb | int }}m"
+    max-file: "{{ xian_docker_log_max_files | int }}"
+    mode: blocking
+
 networks:
   xian-net:
     internal: false
@@ -20,6 +27,7 @@ secrets:
 services:
 {% if xian_deploy_topology == "integrated" %}
   abci:
+    logging: *x-logging
     image: {{ xian_node_image_integrated | to_json }}
     restart: always
     stop_grace_period: 45s
@@ -66,6 +74,7 @@ services:
 {% if xian_dashboard_enabled %}
 
   dashboard:
+    logging: *x-logging
     image: {{ xian_dashboard_image | to_json }}
     restart: always
     init: true
@@ -96,6 +105,7 @@ services:
 {% endif %}
 {% else %}
   abci-app:
+    logging: *x-logging
     image: {{ xian_node_image_split | to_json }}
     restart: always
     init: true
@@ -130,6 +140,7 @@ services:
         protocol: tcp
 
   cometbft:
+    logging: *x-logging
     image: {{ xian_node_image_split | to_json }}
     restart: always
     init: true
@@ -158,6 +169,7 @@ services:
 {% if xian_dashboard_enabled %}
 
   dashboard:
+    logging: *x-logging
     image: {{ xian_dashboard_image | to_json }}
     restart: always
     init: true
@@ -190,6 +202,7 @@ services:
 {% if xian_bds_enabled %}
 
   postgres:
+    logging: *x-logging
     image: {{ xian_postgres_image | to_json }}
     restart: always
     init: true

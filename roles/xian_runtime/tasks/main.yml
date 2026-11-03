@@ -1,4 +1,11 @@
 ---
+- name: Validate container log rotation limits
+  ansible.builtin.assert:
+    that:
+      - (xian_docker_log_max_file_mb | string) is match('^[1-9][0-9]*$')
+      - (xian_docker_log_max_files | string) is match('^[1-9][0-9]*$')
+    fail_msg: Docker log file size and count must be positive integers
+
 - name: Validate profile-derived runtime facts
   ansible.builtin.assert:
     that:

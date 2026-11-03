@@ -1,2 +1,4 @@
 ---
 xian_runtime_action: deploy
+xian_docker_log_max_file_mb: 50
+xian_docker_log_max_files: 5
