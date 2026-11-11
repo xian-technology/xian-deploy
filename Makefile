@@ -12,6 +12,7 @@ test:
 validate:
 	$(MAKE) test
 	uvx --from ansible-core python tests/check_bds_health.py
+	cd tests && uvx --from ansible-core python -m unittest test_deploy_configuration test_upgrade_health_gate test_network_snapshot_restore
 	$(ANSIBLE_INVENTORY_CMD) -i inventories/example/hosts.yml --list >/dev/null
 	$(ANSIBLE) --syntax-check playbooks/bootstrap.yml
 	$(ANSIBLE) --syntax-check playbooks/push-home.yml
@@ -23,4 +24,5 @@ validate:
 	$(ANSIBLE) --syntax-check playbooks/stop.yml
 	$(ANSIBLE) --syntax-check playbooks/upgrade.yml
 	$(ANSIBLE) --syntax-check playbooks/restore-state-snapshot.yml
+	$(ANSIBLE) --syntax-check playbooks/restore-network-snapshot.yml
 	$(ANSIBLE) --syntax-check playbooks/smoke.yml

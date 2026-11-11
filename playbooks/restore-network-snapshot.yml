@@ -1,0 +1,51 @@
+---
+- name: Restore the node profile's network snapshot
+  hosts: xian_nodes
+  become: true
+  serial: 1
+  max_fail_percentage: 0
+  vars:
+    xian_network_snapshot_script_path: "{{ xian_runtime_dir }}/restore-network-snapshot.py"
+    xian_restore_image: >-
+      {{
+        xian_node_image_integrated
+        if xian_deploy_topology == "integrated"
+        else xian_node_image_split
+      }}
+  pre_tasks:
+    - name: Load node profile
+      ansible.builtin.include_role:
+        name: xian_profile
+
+    - name: Validate network snapshot inputs
+      ansible.builtin.include_role:
+        name: xian_profile
+        tasks_from: network_snapshot
+  tasks:
+    - name: Stop runtime before restore
+      ansible.builtin.include_role:
+        name: xian_runtime
+      vars:
+        xian_runtime_action: stop
+
+    - name: Render network snapshot restore script
+      ansible.builtin.template:
+        src: ../roles/xian_runtime/templates/restore-network-snapshot.py.j2
+        dest: "{{ xian_network_snapshot_script_path }}"
+        mode: "0644"
+
+    - name: Restore network snapshot into node home
+      ansible.builtin.shell: >-
+        docker run --rm
+        --entrypoint python
+        -v {{ xian_cometbft_home | quote }}:/root/.cometbft
+        -v {{ (xian_network_snapshot_script_path ~ ':/tmp/restore-network-snapshot.py:ro') | quote }}
+        -e XIAN_CONFIGS_DIR=/opt/xian-configs
+        {{ xian_restore_image | quote }}
+        /tmp/restore-network-snapshot.py
+
+    - name: Start runtime after restore
+      ansible.builtin.include_role:
+        name: xian_runtime
+      vars:
+        xian_runtime_action: deploy

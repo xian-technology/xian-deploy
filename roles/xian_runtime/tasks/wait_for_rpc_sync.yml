@@ -1,0 +1,19 @@
+---
+# Rolling upgrades continue to the next host only after this node answers RPC
+# and has caught up; a crash loop or a stalled sync fails the play instead.
+- name: Wait for node RPC to answer and finish catching up
+  ansible.builtin.uri:
+    url: "{{ xian_upgrade_rpc_status_url }}"
+    return_content: true
+    timeout: "{{ xian_upgrade_rpc_request_timeout_seconds | int }}"
+  register: xian_upgrade_rpc_status
+  until: >-
+    (xian_upgrade_rpc_status.status | default(0)) == 200
+    and not (xian_upgrade_rpc_status.json.result.sync_info.catching_up | default(true) | bool)
+  retries: >-
+    {{
+      [1, ((xian_upgrade_health_timeout_seconds | int) / (xian_upgrade_health_poll_seconds | int))
+      | round(0, 'ceil') | int] | max
+    }}
+  delay: "{{ xian_upgrade_health_poll_seconds | int }}"
+  changed_when: false

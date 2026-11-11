@@ -296,8 +296,88 @@
     xian_bds_spool_warn_entries: "{{ xian_profile_bds.get('spool_warn_entries', xian_bds_spool_warn_entries) | int }}"
     xian_bds_spool_warn_bytes: "{{ xian_profile_bds.get('spool_warn_bytes', xian_bds_spool_warn_bytes) | int }}"
     xian_bds_disk_free_warn_bytes: "{{ xian_profile_bds.get('disk_free_warn_bytes', xian_bds_disk_free_warn_bytes) | int }}"
+
+- name: Load network manifest
+  ansible.builtin.set_fact:
+    xian_network: >-
+      {{
+        lookup('ansible.builtin.file', xian_network_manifest) | from_json
+        if (xian_network_manifest | length > 0)
+        else {}
+      }}
+
+# Same precedence as `xian node init`: the profile genesis overrides the
+# manifest genesis, and chain_id/runtime_features belong to the manifest.
+- name: Resolve effective genesis inputs
+  ansible.builtin.set_fact:
+    xian_effective_genesis: >-
+      {{
+        xian_profile_genesis
+        if (xian_profile_genesis | length > 0)
+        else (xian_network.get('genesis') | default({}, true))
+      }}
+    xian_effective_chain_id: "{{ xian_network.get('chain_id') | default(xian_chain_id, true) }}"
+    xian_runtime_features: "{{ xian_network.get('runtime_features') | default({}, true) }}"
+
+# A manifest source genesis is a control-machine file already materialized in
+# the pushed node home, so only profile sources are copied from xian-configs.
+- name: Derive genesis build inputs
+  ansible.builtin.set_fact:
     xian_genesis_source: "{{ xian_profile_genesis.get('source') if xian_profile_genesis.get('kind') == 'source' else xian_genesis_source }}"
-    xian_genesis_bundle: "{{ xian_profile_genesis.get('bundle') if xian_profile_genesis.get('kind') == 'bundle' else xian_genesis_bundle }}"
+    xian_genesis_bundle: "{{ xian_effective_genesis.get('bundle') if xian_effective_genesis.get('kind') == 'bundle' else '' }}"
+    xian_genesis_time: "{{ (xian_effective_genesis.get('genesis_time') | default('', true)) if xian_effective_genesis.get('kind') == 'bundle' else '' }}"
+
+- name: Validate genesis source selection
+  ansible.builtin.assert:
+    that:
+      - not ((xian_genesis_source | length > 0) and (xian_genesis_bundle | length > 0))
+    fail_msg: pass either a genesis source or a bundle genesis, not both
+
+- name: Validate bundle genesis comes from the network manifest
+  ansible.builtin.assert:
+    that:
+      - (xian_genesis_bundle | length == 0) or (xian_network_manifest | length > 0)
+    fail_msg: >-
+      Building a bundle genesis requires xian_network_manifest, the manifest
+      used by `xian node init`, so chain_id, genesis_time and runtime_features
+      produce the same genesis on every node.
+
+- name: Validate bundle genesis pins its time
+  ansible.builtin.assert:
+    that:
+      - (xian_genesis_bundle | length == 0) or (xian_genesis_time | length > 0)
+    fail_msg: >-
+      The bundle genesis must pin genesis_time; sampling the current time
+      would give every node a different genesis.
+
+- name: Validate network chain id
+  ansible.builtin.assert:
+    that:
+      - (xian_genesis_bundle | length == 0) or (xian_effective_chain_id | length > 0)
+      - (xian_network | length == 0) or (xian_chain_id | length == 0) or (xian_chain_id == xian_effective_chain_id)
+    fail_msg: >-
+      xian_chain_id must be empty or match the network manifest chain_id, and a
+      bundle genesis needs a chain_id.
+
+- name: Validate runtime features
+  ansible.builtin.assert:
+    that:
+      - xian_runtime_features is mapping
+      - (xian_runtime_features.keys() | list | difference(['zk']) | length) == 0
+    fail_msg: network manifest runtime_features may only contain zk
+
+- name: Validate RPC exposure
+  vars:
+    xian_rpc_loopback_hosts: ["127.0.0.1", "localhost", "::1"]
+  ansible.builtin.assert:
+    that:
+      - >-
+        ((xian_rpc_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1') | lower) in xian_rpc_loopback_hosts)
+        or (xian_public_rpc_enabled | bool)
+    fail_msg: >-
+      Publishing CometBFT RPC on a non-loopback address requires
+      xian_public_rpc_enabled=true. Docker-published ports bypass host UFW
+      rules, so the bind host is the effective exposure control.
 
 - name: Derive monitoring variants from operator profile
   ansible.builtin.set_fact:

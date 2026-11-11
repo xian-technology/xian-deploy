@@ -65,7 +65,7 @@ That flow assumes:
 - `playbooks/` — operator entrypoints: `bootstrap.yml`, `push-home.yml`,
   `deploy.yml`, `upgrade.yml`, `health.yml`, `smoke.yml`, `status.yml`,
   `restart.yml`, `stop.yml`, `bootstrap-state-sync.yml`,
-  `restore-state-snapshot.yml`.
+  `restore-state-snapshot.yml`, `restore-network-snapshot.yml`.
 - `roles/` — reusable deployment roles:
   - `host_hardening/` — conservative host hardening baseline and opt-in SSH/firewall controls.
   - `docker_host/` — Docker bootstrap and base runtime packages.
@@ -83,7 +83,7 @@ That flow assumes:
 | `playbooks/bootstrap.yml`         | prepare hosts for the Docker-based Xian runtime            |
 | `playbooks/push-home.yml`         | upload a prepared node-home archive                        |
 | `playbooks/deploy.yml`            | start or reconfigure the released node runtime             |
-| `playbooks/upgrade.yml`           | roll forward to a newer released image                     |
+| `playbooks/upgrade.yml`           | roll forward host by host, gated on synced RPC             |
 | `playbooks/restart.yml`           | restart the runtime services                               |
 | `playbooks/stop.yml`              | stop the runtime services                                  |
 | `playbooks/status.yml`            | inspect remote runtime status                              |
@@ -91,6 +91,7 @@ That flow assumes:
 | `playbooks/smoke.yml`             | run remote smoke tests                                     |
 | `playbooks/bootstrap-state-sync.yml` | join an existing network via protocol state sync       |
 | `playbooks/restore-state-snapshot.yml` | restore an application-state snapshot                |
+| `playbooks/restore-network-snapshot.yml` | stop, restore the profile's signed snapshot, start |
 
 Generate node profiles from the matching `xian-configs/templates/` starter and
 set `xian_node_profile` per host as described in `docs/EXAMPLES.md`.

@@ -21,8 +21,9 @@ xian_deploy_topology: integrated
 
 xian_discover_seeds: []
 xian_genesis_source: ""
-xian_genesis_bundle: ""
-xian_genesis_time: ""
+# Control-machine path to the network manifest used by `xian node init`.
+# Required when the node builds a bundle genesis during deploy.
+xian_network_manifest: ""
 xian_chain_id: ""
 xian_validator_private_key_hex: ""
 xian_snapshot_expected_chain_id: ""
@@ -50,6 +51,10 @@ xian_bds_rpc_url: ""
 xian_bds_spool_warn_entries: 256
 xian_bds_spool_warn_bytes: 536870912
 xian_bds_disk_free_warn_bytes: 2147483648
+
+# CometBFT RPC stays on loopback unless public RPC is explicitly enabled.
+xian_rpc_bind_host: 127.0.0.1
+xian_public_rpc_enabled: false
 
 xian_dashboard_bind_host: 127.0.0.1
 xian_dashboard_port: 8080

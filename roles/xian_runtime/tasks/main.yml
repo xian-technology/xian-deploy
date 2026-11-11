@@ -30,18 +30,6 @@
       - (xian_free_block_max_chi | int) >= (xian_free_tx_max_chi | int)
     fail_msg: tx fee settings must use a supported mode and positive caps, with free_block_max_chi greater than or equal to free_tx_max_chi
 
-- name: Validate genesis source selection
-  ansible.builtin.assert:
-    that:
-      - not ((xian_genesis_source | length > 0) and (xian_genesis_bundle | length > 0))
-    fail_msg: pass either xian_genesis_source or xian_genesis_bundle, not both
-
-- name: Validate genesis bundle chain id
-  ansible.builtin.assert:
-    that:
-      - (xian_genesis_bundle | length == 0) or (xian_chain_id | length > 0)
-    fail_msg: xian_chain_id is required when xian_genesis_bundle is set
-
 - name: Resolve BDS RPC URL
   ansible.builtin.set_fact:
     xian_effective_bds_rpc_url: >-

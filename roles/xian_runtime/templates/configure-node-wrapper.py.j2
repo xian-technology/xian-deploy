@@ -85,12 +85,9 @@ add("--genesis-source", {{ xian_genesis_source | to_json }})
 {% endif %}
 {% if xian_genesis_bundle | length > 0 %}
 add("--genesis-bundle", {{ xian_genesis_bundle | to_json }})
-{% endif %}
-{% if xian_chain_id | length > 0 %}
-add("--chain-id", {{ xian_chain_id | to_json }})
-{% endif %}
-{% if xian_genesis_time | length > 0 %}
+add("--chain-id", {{ xian_effective_chain_id | to_json }})
 add("--genesis-time", {{ xian_genesis_time | to_json }})
+add({{ ('--runtime-feature-zk' if (xian_runtime_features.get('zk', false) | bool) else '--no-runtime-feature-zk') | to_json }})
 {% endif %}
 {% for seed in xian_discover_seeds %}
 add("--discover-seed", {{ seed | to_json }})
@@ -100,15 +97,6 @@ add("--seed", {{ seed | to_json }})
 {% endfor %}
 {% for peer in xian_p2p_persistent_peers %}
 add("--persistent-peer", {{ peer | to_json }})
-{% endfor %}
-{% if xian_snapshot_url | length > 0 %}
-add("--snapshot-url", {{ xian_snapshot_url | to_json }})
-{% endif %}
-{% if xian_snapshot_expected_chain_id | length > 0 %}
-add("--snapshot-expected-chain-id", {{ xian_snapshot_expected_chain_id | to_json }})
-{% endif %}
-{% for key in xian_snapshot_signing_keys %}
-add("--snapshot-signing-key", {{ key | to_json }})
 {% endfor %}
 {% if xian_validator_private_key_hex | length > 0 %}
 add_secret_file("--validator-privkey", {{ xian_container_validator_private_key_hex_file | to_json }})

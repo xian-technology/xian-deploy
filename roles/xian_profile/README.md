@@ -12,6 +12,14 @@ policy, pruning, logging, metrics, state sync, P2P peers, snapshots, and node
 images. Inventory still owns deployment bindings such as remote paths, host
 port publishing, topology, and secrets.
 
+Optional `xian_network_manifest` points at the network manifest used by
+`xian node init`. It is required when deploy builds a bundle genesis and then
+supplies `chain_id`, `genesis_time`, and `runtime_features`, using the same
+profile-over-manifest genesis precedence as `xian node init`. A bundle genesis
+without a fixed `genesis_time` is rejected.
+
+CometBFT RPC binds to `127.0.0.1` unless `xian_public_rpc_enabled` is true.
+
 BDS deployments must provide `xian_bds_password` from a private inventory,
 vault, or secret manager. Empty values and weak example passwords are rejected
 before runtime files are rendered.

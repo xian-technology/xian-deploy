@@ -1,0 +1,12 @@
+from pathlib import Path
+
+from xian.node_admin import apply_snapshot_archive
+
+print(
+    apply_snapshot_archive(
+        {{ xian_snapshot_url | to_json }},
+        Path("/root/.cometbft"),
+        trusted_manifest_public_keys={{ xian_snapshot_signing_keys | list | to_json }},
+        expected_chain_id={{ (xian_network_snapshot_expected_chain_id | default('', true) or none) | to_json }},
+    )
+)

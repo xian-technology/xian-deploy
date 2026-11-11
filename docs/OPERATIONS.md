@@ -20,7 +20,20 @@ make validate
 ```
 
 `make lint` runs the `ansible-lint` minimum profile over playbooks, roles, and
-inventories. `make validate` verifies the example inventory and playbook syntax.
+inventories. `make validate` verifies the example inventory and playbook syntax
+and runs the role checks in `tests/` with ansible-core on localhost: rendered
+configure arguments, genesis and RPC exposure validation, the upgrade health
+gate against a local fake RPC, and the network snapshot restore script.
+
+`tests/test_genesis_parity.py` additionally proves that deploy and
+`xian node init` build byte-identical bundle genesis. It is opt-in because it
+needs xian-abci; it starts no node:
+
+```bash
+cd tests && XIAN_DEPLOY_PARITY_PYTHON=../../xian-cli/.venv/bin/python \
+  XIAN_DEPLOY_PARITY_CONFIGS=../../xian-configs \
+  uvx --from ansible-core python -m unittest test_genesis_parity
+```
 
 ## Host Bootstrap Hardening
 
@@ -42,8 +55,37 @@ Before enabling SSH or firewall management, confirm operator key access, the SSH
 port, and the public Xian ports that should be reachable. By default, the UFW
 allow list includes SSH and the configured P2P port; add RPC, dashboard,
 Prometheus, or Grafana ports only when those services are intentionally public.
-Docker also manages iptables for published container ports, so verify the
-effective exposure from outside the host after enabling UFW.
+Docker manages iptables for published container ports and bypasses UFW rules:
+a port published on `0.0.0.0` is reachable even if UFW does not allow it. The
+bind host is therefore the effective exposure control. CometBFT RPC binds to
+`127.0.0.1` by default; publishing it on any other address requires
+`xian_public_rpc_enabled: true`, and the profile role fails otherwise. Verify
+the effective exposure from outside the host after enabling UFW.
+
+## Configuration Changes and Upgrades
+
+`deploy.yml` rewrites the node configuration and runs `docker compose up -d`.
+Compose recreates containers only when the image or Compose definition
+changes, so a profile-only change (peers, state sync, logging, block policy)
+reaches the node only after `playbooks/restart.yml`.
+
+Deploy-time configuration never restores a snapshot, even when the node profile
+carries `snapshot_url`. Use `playbooks/restore-network-snapshot.yml` for that.
+
+`playbooks/upgrade.yml` upgrades one host at a time. After each host it waits
+until CometBFT RPC answers with `catching_up: false` and fails the play,
+stopping the rollout, when that does not happen within
+`xian_upgrade_health_timeout_seconds` (default 600, polled every
+`xian_upgrade_health_poll_seconds`). Override `xian_upgrade_rpc_status_url` when
+RPC is not reachable on `127.0.0.1:{{ xian_rpc_port }}` from the host.
+
+When deploy builds a bundle genesis (the node profile genesis is a bundle, or
+the profile has none and the network manifest's genesis is a bundle), set
+`xian_network_manifest` to the manifest used by `xian node init`. Deploy takes
+`chain_id`, `genesis_time` and `runtime_features` from it, with the same
+profile-over-manifest precedence as `xian node init`, and rejects a bundle
+genesis without a fixed `genesis_time`. A manifest `source` genesis is not
+copied; the pushed node home already contains it.
 
 ## Remote Health
 
@@ -185,7 +227,21 @@ operations, source the checksum and metadata from a signed operator snapshot
 manifest or another release-approved publication path. This is not the same as
 a full prepared node-home archive.
 
-### 3. Protocol State Sync
+### 3. Network Snapshot From the Node Profile
+
+Use this when the node profile carries `snapshot_url` and trusted
+`snapshot_signing_keys`:
+
+```bash
+ansible-playbook playbooks/restore-network-snapshot.yml
+```
+
+The playbook validates the profile inputs, stops the runtime, restores the
+signed snapshot inside the node image, and starts the runtime again, one host
+at a time. The expected chain id is `xian_snapshot_expected_chain_id`, or the
+network manifest chain id when that is empty.
+
+### 4. Protocol State Sync
 
 Use this when you want the remote node to bootstrap from trusted peers that
 serve Xian application snapshots through CometBFT state sync.

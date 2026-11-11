@@ -2,3 +2,10 @@
 xian_runtime_action: deploy
 xian_docker_log_max_file_mb: 50
 xian_docker_log_max_files: 5
+
+# Upgrade health gate: every host must answer RPC with catching_up=false
+# within this budget before the rolling upgrade moves to the next host.
+xian_upgrade_rpc_status_url: "http://127.0.0.1:{{ xian_rpc_port }}/status"
+xian_upgrade_health_timeout_seconds: 600
+xian_upgrade_health_poll_seconds: 10
+xian_upgrade_rpc_request_timeout_seconds: 5

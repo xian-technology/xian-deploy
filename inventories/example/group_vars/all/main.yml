@@ -29,6 +29,10 @@ xian_node_home_replace: true
 
 # Optional deployment-only inputs. Runtime intent belongs in xian_node_profile.
 xian_discover_seeds: []
+# The network manifest used by `xian node init`. Required only when deploy
+# builds a bundle genesis; chain_id, genesis_time and runtime_features come
+# from it so every node builds the same genesis.
+xian_network_manifest: ""
 xian_chain_id: ""
 xian_snapshot_expected_chain_id: ""
 xian_validator_private_key_hex: ""
@@ -40,7 +44,11 @@ xian_bds_user: xian
 
 # Bind hosts may be IPv4 or IPv6 literals. Use unbracketed IPv6 values such as
 # "::1" or "2001:db8::10"; the Compose templates publish ports with long syntax.
-xian_rpc_bind_host: 0.0.0.0
+# RPC stays on loopback. Publishing it on another address requires
+# xian_public_rpc_enabled: true. Docker-published ports bypass UFW, so the
+# bind host, not the host firewall, decides exposure.
+xian_rpc_bind_host: 127.0.0.1
+xian_public_rpc_enabled: false
 xian_rpc_port: 26657
 xian_p2p_bind_host: 0.0.0.0
 xian_p2p_port: 26656
