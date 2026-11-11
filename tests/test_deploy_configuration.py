@@ -107,6 +107,72 @@ class BundleGenesisTest(PlaybookTestCase):
         self.assertNotIn("--chain-id", arguments)
 
 
+FEE_OPTIONS = ("--tx-fee-mode", "--free-tx-max-chi", "--free-block-max-chi")
+FREE_POLICY = {
+    "tx_fee_mode": "free_metered",
+    "free_tx_max_chi": 250000,
+    "free_block_max_chi": 5000000,
+}
+
+
+@requires_ansible
+class GenesisFeePolicyTest(PlaybookTestCase):
+    def test_bundle_genesis_passes_the_manifest_fee_policy(self) -> None:
+        result, arguments = render_configure_wrapper(
+            self.workdir, manifest=bundle_manifest(fee_policy=FREE_POLICY)
+        )
+
+        self.assertPlaySucceeded(result)
+        self.assertEqual(option_values(arguments, "--tx-fee-mode"), ["free_metered"])
+        self.assertEqual(option_values(arguments, "--free-tx-max-chi"), ["250000"])
+        self.assertEqual(option_values(arguments, "--free-block-max-chi"), ["5000000"])
+
+    def test_bundle_genesis_without_fee_policy_uses_the_paid_default(self) -> None:
+        result, arguments = render_configure_wrapper(self.workdir, manifest=bundle_manifest())
+
+        self.assertPlaySucceeded(result)
+        self.assertEqual([argument for argument in arguments if argument in FEE_OPTIONS], [])
+
+    def test_configuring_an_existing_genesis_never_passes_fee_options(self) -> None:
+        result, arguments = render_configure_wrapper(self.workdir)
+
+        self.assertPlaySucceeded(result)
+        self.assertEqual([argument for argument in arguments if argument in FEE_OPTIONS], [])
+
+    def test_profile_fee_settings_are_rejected(self) -> None:
+        profile = canonical_profile(tx_fee_mode="free_metered")
+        result, _ = render_configure_wrapper(self.workdir, profile=profile)
+
+        self.assertPlayFailed(result, "fee_policy")
+
+    def test_fee_policy_requires_a_bundle_manifest_genesis(self) -> None:
+        manifest = bundle_manifest(
+            genesis={"kind": "source", "source": "./genesis.json"}, fee_policy=FREE_POLICY
+        )
+        result, _ = render_configure_wrapper(self.workdir, manifest=manifest)
+
+        self.assertPlayFailed(result, "only with a bundle genesis")
+
+    def test_manifest_fee_policy_must_be_canonical(self) -> None:
+        for index, fee_policy in enumerate(
+            (
+                {"tx_fee_mode": "gratis"},
+                {"tx_fee_mode": "paid_metered", "free_tx_max_chi": 1},
+                {"tx_fee_mode": "free_metered", "free_tx_max_chi": 0},
+                {"tx_fee_mode": "free_metered", "free_tx_max_chi": 10, "free_block_max_chi": 9},
+                {"tx_fee_mode": "free_metered", "free_tx_max_chi": True},
+                {"tx_fee_mode": "free_metered", "extra": 1},
+            )
+        ):
+            with self.subTest(fee_policy=fee_policy):
+                workdir = self.workdir / str(index)
+                workdir.mkdir()
+                result, _ = render_configure_wrapper(
+                    workdir, manifest=bundle_manifest(fee_policy=fee_policy)
+                )
+                self.assertPlayFailed(result, "fee_policy")
+
+
 @requires_ansible
 class PublicRpcTest(PlaybookTestCase):
     def rpc_bind(self, **variables):

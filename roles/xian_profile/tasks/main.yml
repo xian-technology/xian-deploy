@@ -53,6 +53,15 @@
       profile generated with node_image_mode=registry and complete
       services/advanced runtime sections.
 
+- name: Reject node-local fee settings
+  ansible.builtin.assert:
+    that:
+      - (xian_profile.keys() | list | intersect(['tx_fee_mode', 'free_tx_max_chi', 'free_block_max_chi']) | length) == 0
+    fail_msg: >-
+      The node profile must not set tx_fee_mode, free_tx_max_chi or
+      free_block_max_chi: the fee policy is chain state chosen at genesis. Set
+      fee_policy in the network manifest instead.
+
 - name: Extract node profile sections
   ansible.builtin.set_fact:
     xian_profile_p2p: "{{ xian_profile.get('p2p', {}) }}"
@@ -104,9 +113,6 @@
       - simulation_max_concurrency
       - simulation_timeout_ms
       - simulation_max_chi
-      - tx_fee_mode
-      - free_tx_max_chi
-      - free_block_max_chi
       - parallel_execution_enabled
       - parallel_execution_workers
       - parallel_execution_min_transactions
@@ -258,9 +264,6 @@
     xian_simulation_max_concurrency: "{{ xian_profile.get('simulation_max_concurrency', 2) | int }}"
     xian_simulation_timeout_ms: "{{ xian_profile.get('simulation_timeout_ms', 3000) | int }}"
     xian_simulation_max_chi: "{{ xian_profile.get('simulation_max_chi', 1000000) | int }}"
-    xian_tx_fee_mode: "{{ xian_profile.get('tx_fee_mode', 'paid_metered') }}"
-    xian_free_tx_max_chi: "{{ xian_profile.get('free_tx_max_chi', 1000000) | int }}"
-    xian_free_block_max_chi: "{{ xian_profile.get('free_block_max_chi', 20000000) | int }}"
     xian_parallel_execution_enabled: "{{ xian_profile.get('parallel_execution_enabled', false) | bool }}"
     xian_parallel_execution_workers: "{{ xian_profile.get('parallel_execution_workers', 4) | int }}"
     xian_parallel_execution_min_transactions: "{{ xian_profile.get('parallel_execution_min_transactions', 8) | int }}"
@@ -358,6 +361,32 @@
     fail_msg: >-
       xian_chain_id must be empty or match the network manifest chain_id, and a
       bundle genesis needs a chain_id.
+
+# The fee policy is genesis state (`__fee_policy`); deploy only passes it when
+# it builds a bundle genesis, exactly as `xian node init` does.
+- name: Resolve genesis fee policy
+  ansible.builtin.set_fact:
+    xian_fee_policy: "{{ xian_network.get('fee_policy') | default({}, true) }}"
+
+- name: Validate genesis fee policy
+  vars:
+    xian_fee_policy_mode: "{{ xian_fee_policy.get('tx_fee_mode', 'paid_metered') }}"
+    xian_fee_policy_tx_max: "{{ xian_fee_policy.get('free_tx_max_chi', 1000000) }}"
+    xian_fee_policy_block_max: "{{ xian_fee_policy.get('free_block_max_chi', 20000000) }}"
+  ansible.builtin.assert:
+    that:
+      - xian_fee_policy is mapping
+      - (xian_fee_policy | length == 0) or ((xian_network.get('genesis') | default({}, true)).get('kind') == 'bundle')
+      - (xian_fee_policy.keys() | list | difference(['tx_fee_mode', 'free_tx_max_chi', 'free_block_max_chi']) | length) == 0
+      - xian_fee_policy_mode in ['paid_metered', 'free_metered']
+      - (xian_fee_policy_mode == 'free_metered') or ((xian_fee_policy.keys() | list | difference(['tx_fee_mode']) | length) == 0)
+      - xian_fee_policy_tx_max is integer and (xian_fee_policy_tx_max | int) > 0
+      - xian_fee_policy_block_max is integer and (xian_fee_policy_block_max | int) > 0
+      - (xian_fee_policy_block_max | int) >= (xian_fee_policy_tx_max | int)
+    fail_msg: >-
+      The network manifest fee_policy must be canonical: tx_fee_mode
+      paid_metered (alone) or free_metered with positive integer
+      free_tx_max_chi <= free_block_max_chi, and only with a bundle genesis.
 
 - name: Validate runtime features
   ansible.builtin.assert:

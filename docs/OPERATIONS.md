@@ -82,7 +82,7 @@ RPC is not reachable on `127.0.0.1:{{ xian_rpc_port }}` from the host.
 When deploy builds a bundle genesis (the node profile genesis is a bundle, or
 the profile has none and the network manifest's genesis is a bundle), set
 `xian_network_manifest` to the manifest used by `xian node init`. Deploy takes
-`chain_id`, `genesis_time` and `runtime_features` from it, with the same
+`chain_id`, `genesis_time`, `runtime_features` and `fee_policy` from it, with the same
 profile-over-manifest precedence as `xian node init`, and rejects a bundle
 genesis without a fixed `genesis_time`. A manifest `source` genesis is not
 copied; the pushed node home already contains it.

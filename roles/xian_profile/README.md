@@ -14,9 +14,14 @@ port publishing, topology, and secrets.
 
 Optional `xian_network_manifest` points at the network manifest used by
 `xian node init`. It is required when deploy builds a bundle genesis and then
-supplies `chain_id`, `genesis_time`, and `runtime_features`, using the same
+supplies `chain_id`, `genesis_time`, `runtime_features`, and `fee_policy`, using the same
 profile-over-manifest genesis precedence as `xian node init`. A bundle genesis
 without a fixed `genesis_time` is rejected.
+
+The transaction fee policy is genesis state. Node profiles that set
+`tx_fee_mode`, `free_tx_max_chi`, or `free_block_max_chi` are rejected; deploy
+passes the manifest `fee_policy` only when it builds a bundle genesis and never
+writes fee settings into `xian.toml`.
 
 CometBFT RPC binds to `127.0.0.1` unless `xian_public_rpc_enabled` is true.
 
