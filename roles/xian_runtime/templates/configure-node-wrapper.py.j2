@@ -85,7 +85,7 @@ add("--genesis-bundle", {{ xian_genesis_bundle | to_json }})
 add("--chain-id", {{ xian_effective_chain_id | to_json }})
 add("--genesis-time", {{ xian_genesis_time | to_json }})
 add({{ ('--runtime-feature-zk' if (xian_runtime_features.get('zk', false) | bool) else '--no-runtime-feature-zk') | to_json }})
-{% for field in ['tx_fee_mode', 'free_tx_max_chi', 'free_block_max_chi'] if field in xian_fee_policy %}
+{% for field in ['tx_fee_mode', 'max_tx_chi', 'max_block_chi'] if field in xian_fee_policy %}
 add({{ ('--' ~ (field | replace('_', '-'))) | to_json }}, {{ xian_fee_policy[field] | to_json }})
 {% endfor %}
 {% endif %}

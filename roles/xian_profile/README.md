@@ -19,7 +19,7 @@ profile-over-manifest genesis precedence as `xian node init`. A bundle genesis
 without a fixed `genesis_time` is rejected.
 
 The transaction fee policy is genesis state. Node profiles that set
-`tx_fee_mode`, `free_tx_max_chi`, or `free_block_max_chi` are rejected; deploy
+`tx_fee_mode`, `max_tx_chi`, or `max_block_chi` are rejected; deploy
 passes the manifest `fee_policy` only when it builds a bundle genesis and never
 writes fee settings into `xian.toml`.
 

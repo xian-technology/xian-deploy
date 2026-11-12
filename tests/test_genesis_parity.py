@@ -31,8 +31,8 @@ MANIFEST = {
     "runtime_features": {"zk": True},
     "fee_policy": {
         "tx_fee_mode": "free_metered",
-        "free_tx_max_chi": 250000,
-        "free_block_max_chi": 5000000,
+        "max_tx_chi": 150000,
+        "max_block_chi": 400000,
     },
     "node_image_mode": "local_build",
     "p2p": {"seeds": [], "persistent_peers": []},

@@ -107,25 +107,40 @@ class BundleGenesisTest(PlaybookTestCase):
         self.assertNotIn("--chain-id", arguments)
 
 
-FEE_OPTIONS = ("--tx-fee-mode", "--free-tx-max-chi", "--free-block-max-chi")
+FEE_OPTIONS = ("--tx-fee-mode", "--max-tx-chi", "--max-block-chi")
 FREE_POLICY = {
     "tx_fee_mode": "free_metered",
-    "free_tx_max_chi": 250000,
-    "free_block_max_chi": 5000000,
+    "max_tx_chi": 150000,
+    "max_block_chi": 400000,
+}
+PAID_POLICY = {
+    "tx_fee_mode": "paid_metered",
+    "max_tx_chi": 100000,
+    "max_block_chi": 300000,
 }
 
 
 @requires_ansible
 class GenesisFeePolicyTest(PlaybookTestCase):
     def test_bundle_genesis_passes_the_manifest_fee_policy(self) -> None:
-        result, arguments = render_configure_wrapper(
-            self.workdir, manifest=bundle_manifest(fee_policy=FREE_POLICY)
-        )
+        for index, policy in enumerate((FREE_POLICY, PAID_POLICY)):
+            with self.subTest(mode=policy["tx_fee_mode"]):
+                workdir = self.workdir / str(index)
+                workdir.mkdir()
+                result, arguments = render_configure_wrapper(
+                    workdir, manifest=bundle_manifest(fee_policy=policy)
+                )
 
-        self.assertPlaySucceeded(result)
-        self.assertEqual(option_values(arguments, "--tx-fee-mode"), ["free_metered"])
-        self.assertEqual(option_values(arguments, "--free-tx-max-chi"), ["250000"])
-        self.assertEqual(option_values(arguments, "--free-block-max-chi"), ["5000000"])
+                self.assertPlaySucceeded(result)
+                self.assertEqual(
+                    option_values(arguments, "--tx-fee-mode"), [policy["tx_fee_mode"]]
+                )
+                self.assertEqual(
+                    option_values(arguments, "--max-tx-chi"), [str(policy["max_tx_chi"])]
+                )
+                self.assertEqual(
+                    option_values(arguments, "--max-block-chi"), [str(policy["max_block_chi"])]
+                )
 
     def test_bundle_genesis_without_fee_policy_uses_the_paid_default(self) -> None:
         result, arguments = render_configure_wrapper(self.workdir, manifest=bundle_manifest())
@@ -156,12 +171,16 @@ class GenesisFeePolicyTest(PlaybookTestCase):
     def test_manifest_fee_policy_must_be_canonical(self) -> None:
         for index, fee_policy in enumerate(
             (
-                {"tx_fee_mode": "gratis"},
-                {"tx_fee_mode": "paid_metered", "free_tx_max_chi": 1},
-                {"tx_fee_mode": "free_metered", "free_tx_max_chi": 0},
-                {"tx_fee_mode": "free_metered", "free_tx_max_chi": 10, "free_block_max_chi": 9},
-                {"tx_fee_mode": "free_metered", "free_tx_max_chi": True},
-                {"tx_fee_mode": "free_metered", "extra": 1},
+                FREE_POLICY | {"tx_fee_mode": "gratis"},
+                # Canonical policies always carry both caps.
+                {"tx_fee_mode": "paid_metered"},
+                {"tx_fee_mode": "free_metered", "max_tx_chi": 10},
+                FREE_POLICY | {"max_tx_chi": 0},
+                FREE_POLICY | {"max_tx_chi": 10, "max_block_chi": 9},
+                FREE_POLICY | {"max_tx_chi": True},
+                FREE_POLICY | {"extra": 1},
+                # The pre-revision-11 field names are gone.
+                {"tx_fee_mode": "free_metered", "free_tx_max_chi": 1, "free_block_max_chi": 2},
             )
         ):
             with self.subTest(fee_policy=fee_policy):

@@ -56,11 +56,11 @@
 - name: Reject node-local fee settings
   ansible.builtin.assert:
     that:
-      - (xian_profile.keys() | list | intersect(['tx_fee_mode', 'free_tx_max_chi', 'free_block_max_chi']) | length) == 0
+      - (xian_profile.keys() | list | intersect(['tx_fee_mode', 'max_tx_chi', 'max_block_chi']) | length) == 0
     fail_msg: >-
-      The node profile must not set tx_fee_mode, free_tx_max_chi or
-      free_block_max_chi: the fee policy is chain state chosen at genesis. Set
-      fee_policy in the network manifest instead.
+      The node profile must not set tx_fee_mode, max_tx_chi or max_block_chi:
+      the fee policy is chain state chosen at genesis. Set fee_policy in the
+      network manifest instead.
 
 - name: Extract node profile sections
   ansible.builtin.set_fact:
@@ -368,25 +368,26 @@
   ansible.builtin.set_fact:
     xian_fee_policy: "{{ xian_network.get('fee_policy') | default({}, true) }}"
 
+# A manifest fee_policy is either absent (the node's genesis default) or the
+# canonical form `xian network create` writes: the mode and both chi caps.
+# The node checks the remaining bounds when it builds genesis.
 - name: Validate genesis fee policy
   vars:
-    xian_fee_policy_mode: "{{ xian_fee_policy.get('tx_fee_mode', 'paid_metered') }}"
-    xian_fee_policy_tx_max: "{{ xian_fee_policy.get('free_tx_max_chi', 1000000) }}"
-    xian_fee_policy_block_max: "{{ xian_fee_policy.get('free_block_max_chi', 20000000) }}"
+    xian_fee_policy_fields: ['tx_fee_mode', 'max_tx_chi', 'max_block_chi']
   ansible.builtin.assert:
     that:
       - xian_fee_policy is mapping
       - (xian_fee_policy | length == 0) or ((xian_network.get('genesis') | default({}, true)).get('kind') == 'bundle')
-      - (xian_fee_policy.keys() | list | difference(['tx_fee_mode', 'free_tx_max_chi', 'free_block_max_chi']) | length) == 0
-      - xian_fee_policy_mode in ['paid_metered', 'free_metered']
-      - (xian_fee_policy_mode == 'free_metered') or ((xian_fee_policy.keys() | list | difference(['tx_fee_mode']) | length) == 0)
-      - xian_fee_policy_tx_max is integer and (xian_fee_policy_tx_max | int) > 0
-      - xian_fee_policy_block_max is integer and (xian_fee_policy_block_max | int) > 0
-      - (xian_fee_policy_block_max | int) >= (xian_fee_policy_tx_max | int)
+      - (xian_fee_policy | length == 0) or (
+          (xian_fee_policy.keys() | list | sort) == (xian_fee_policy_fields | sort)
+          and xian_fee_policy.tx_fee_mode in ['paid_metered', 'free_metered']
+          and xian_fee_policy.max_tx_chi is integer and xian_fee_policy.max_tx_chi > 0
+          and xian_fee_policy.max_block_chi is integer
+          and xian_fee_policy.max_block_chi >= xian_fee_policy.max_tx_chi)
     fail_msg: >-
       The network manifest fee_policy must be canonical: tx_fee_mode
-      paid_metered (alone) or free_metered with positive integer
-      free_tx_max_chi <= free_block_max_chi, and only with a bundle genesis.
+      (paid_metered or free_metered) with positive integer max_tx_chi <=
+      max_block_chi, and only with a bundle genesis.
 
 - name: Validate runtime features
   ansible.builtin.assert:
