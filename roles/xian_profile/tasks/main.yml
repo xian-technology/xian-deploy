@@ -232,11 +232,8 @@
 
 - name: Derive runtime facts from node profile
   ansible.builtin.set_fact:
-    xian_profile_name: "{{ xian_profile.get('name') }}"
-    xian_network_name: "{{ xian_profile.get('network') }}"
     xian_moniker: "{{ xian_profile.get('moniker') }}"
     xian_operator_profile: "{{ xian_profile.get('operator_profile') | default('', true) }}"
-    xian_monitoring_profile: "{{ xian_profile.get('monitoring_profile') | default('none', true) }}"
     xian_node_image_integrated: "{{ xian_profile.get('node_integrated_image') }}"
     xian_node_image_split: "{{ xian_profile.get('node_split_image') }}"
     xian_p2p_seeds: "{{ xian_profile_p2p.get('seeds', []) }}"

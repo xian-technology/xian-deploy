@@ -13,11 +13,6 @@ networks:
     internal: true
 {% endif %}
 
-{% if xian_monitoring_enabled %}
-volumes:
-  grafana-data:
-{% endif %}
-
 {% if xian_bds_enabled %}
 secrets:
   xian_bds_password:

@@ -48,7 +48,6 @@
       delegate_to: localhost
       become: false
       changed_when: false
-      register: xian_state_snapshot_validation
   tasks:
     - name: Stop runtime before restore
       ansible.builtin.include_role:

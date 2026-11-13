@@ -54,7 +54,6 @@
     - "{{ xian_runtime_dir }}"
     - "{{ xian_monitoring_dir }}"
     - "{{ xian_monitoring_dir }}/alertmanager"
-    - "{{ xian_monitoring_dir }}/rules"
     - "{{ xian_monitoring_dir }}/grafana/provisioning/dashboards"
     - "{{ xian_monitoring_dir }}/grafana/provisioning/datasources"
     - "{{ xian_monitoring_dir }}/grafana/dashboards"
