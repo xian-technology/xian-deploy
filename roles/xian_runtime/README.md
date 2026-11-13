@@ -8,8 +8,8 @@ It is responsible for:
 - applying the runtime facts derived from the canonical node profile
 - starting and updating the released containers
 - exposing the same node-local runtime settings that `xian-configure-node`
-  writes, including logging, simulation, pending nonce, BDS, metrics, state
-  sync, and speculative parallel execution controls
+  writes, including logging, simulation, pending nonce, BDS, metrics, and state
+  sync controls
 - deriving the BDS catch-up RPC URL from the selected topology when
   `xian_bds_rpc_url` is left empty
 - rendering private BDS DSN/password and validator-key material into `0600`

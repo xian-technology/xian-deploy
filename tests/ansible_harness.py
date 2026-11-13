@@ -51,7 +51,6 @@ def canonical_profile(**overrides) -> dict:
             "statesync": {},
             "metrics": {},
             "pending_nonce": {},
-            "parallel_execution": {},
         },
     }
     profile.update(overrides)

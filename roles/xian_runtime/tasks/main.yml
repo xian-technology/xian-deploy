@@ -15,12 +15,6 @@
       - xian_runtime_action in ["deploy", "stop", "restart", "status"]
     fail_msg: Run the xian_profile role before xian_runtime and set a valid xian_deploy_topology/runtime action.
 
-- name: Validate parallel execution workers
-  ansible.builtin.assert:
-    that:
-      - not (xian_parallel_execution_enabled | bool) or (xian_parallel_execution_workers | int > 0)
-    fail_msg: parallel_execution_workers must be greater than zero when parallel_execution_enabled is true
-
 - name: Resolve BDS RPC URL
   ansible.builtin.set_fact:
     xian_effective_bds_rpc_url: >-

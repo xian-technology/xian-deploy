@@ -160,6 +160,35 @@ class GenesisFeePolicyTest(PlaybookTestCase):
 
         self.assertPlayFailed(result, "fee_policy")
 
+    def test_configure_wrapper_passes_no_parallel_execution_options(self) -> None:
+        result, arguments = render_configure_wrapper(self.workdir)
+
+        self.assertPlaySucceeded(result)
+        self.assertEqual(
+            [argument for argument in arguments if "parallel-execution" in str(argument)], []
+        )
+
+    def test_removed_parallel_execution_settings_are_rejected(self) -> None:
+        for index, profile in enumerate(
+            (
+                canonical_profile(parallel_execution_enabled=False),
+                canonical_profile(
+                    advanced={
+                        "cometbft": {},
+                        "statesync": {},
+                        "metrics": {},
+                        "pending_nonce": {},
+                        "parallel_execution": {},
+                    }
+                ),
+            )
+        ):
+            with self.subTest(index=index):
+                workdir = self.workdir / f"parallel-{index}"
+                workdir.mkdir()
+                result, _ = render_configure_wrapper(workdir, profile=profile)
+                self.assertPlayFailed(result, "parallel executor was removed")
+
     def test_fee_policy_requires_a_bundle_manifest_genesis(self) -> None:
         manifest = bundle_manifest(
             genesis={"kind": "source", "source": "./genesis.json"}, fee_policy=FREE_POLICY
