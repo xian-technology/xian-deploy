@@ -276,6 +276,39 @@ class AppMetricsTest(PlaybookTestCase):
         self.assertPlaySucceeded(result)
         self.assertEqual(published, '{"host": "10.0.0.5", "port": 39108}')
 
+    def test_health_checks_probe_the_published_address(self) -> None:
+        cases = [
+            ({}, "http://127.0.0.1:9108/metrics"),
+            ({"host": "0.0.0.0"}, "http://127.0.0.1:9108/metrics"),
+            ({"host": "::"}, "http://127.0.0.1:9108/metrics"),
+            ({"host": "[::]"}, "http://127.0.0.1:9108/metrics"),
+            ({"host": "::1"}, "http://127.0.0.1:9108/metrics"),
+            ({"host": "localhost"}, "http://127.0.0.1:9108/metrics"),
+            ({"host": "10.0.0.5", "port": 39108}, "http://10.0.0.5:39108/metrics"),
+            ({"host": "2001:db8::10"}, "http://[2001:db8::10]:9108/metrics"),
+            ({"host": "[2001:DB8::10]"}, "http://[2001:db8::10]:9108/metrics"),
+        ]
+        for index, (metrics, expected) in enumerate(cases):
+            with self.subTest(metrics=metrics):
+                workdir = self.workdir / str(index)
+                workdir.mkdir()
+                report = workdir / "url.txt"
+                result = run_play(
+                    workdir,
+                    variables={},
+                    profile=self.profile(metrics),
+                    tasks=[
+                        {
+                            "ansible.builtin.copy": {
+                                "dest": str(report),
+                                "content": "{{ xian_app_metrics_probe_url }}",
+                            }
+                        }
+                    ],
+                )
+                self.assertPlaySucceeded(result)
+                self.assertEqual(report.read_text(), expected)
+
     def test_metrics_are_published_locally_by_default(self) -> None:
         result, published = self.published({})
 

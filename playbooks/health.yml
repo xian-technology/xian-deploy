@@ -4,7 +4,7 @@
   become: true
   vars:
     xian_health_rpc_status_url: "http://127.0.0.1:{{ xian_rpc_port }}/status"
-    xian_health_xian_metrics_url: "http://127.0.0.1:{{ xian_app_metrics_port }}/metrics"
+    xian_health_xian_metrics_url: "{{ xian_app_metrics_probe_url }}"
     xian_health_dashboard_url: "http://127.0.0.1:{{ xian_dashboard_port }}/"
     xian_health_prometheus_url: "http://127.0.0.1:{{ xian_prometheus_port }}/-/ready"
     xian_health_grafana_url: "http://127.0.0.1:{{ xian_grafana_port }}/api/health"

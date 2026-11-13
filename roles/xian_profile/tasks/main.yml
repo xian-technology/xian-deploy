@@ -286,6 +286,32 @@
     xian_snapshot_url: "{{ xian_profile.get('snapshot_url') | default('', true) }}"
     xian_snapshot_signing_keys: "{{ xian_profile.get('snapshot_signing_keys') | default([], true) }}"
 
+- name: Derive the address health checks probe app metrics on
+  vars:
+    xian_app_metrics_probe_host: "{{ xian_app_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1') | lower }}"
+    # Wildcard and loopback binds are reachable on 127.0.0.1; a specific
+    # address only on itself.
+    xian_app_metrics_local_hosts:
+      - ""
+      - "0.0.0.0"
+      - "::"
+      - "0:0:0:0:0:0:0:0"
+      - "127.0.0.1"
+      - "localhost"
+      - "::1"
+      - "0:0:0:0:0:0:0:1"
+      - "0000:0000:0000:0000:0000:0000:0000:0001"
+      - "ip6-localhost"
+      - "ip6-loopback"
+      - "localhost6"
+  ansible.builtin.set_fact:
+    xian_app_metrics_probe_url: >-
+      http://{{
+        '127.0.0.1' if xian_app_metrics_probe_host in xian_app_metrics_local_hosts
+        else ('[' ~ xian_app_metrics_probe_host ~ ']' if ':' in xian_app_metrics_probe_host
+        else xian_app_metrics_probe_host)
+      }}:{{ xian_app_metrics_port }}/metrics
+
 - name: Derive remote runtime settings from node profile
   ansible.builtin.set_fact:
     xian_bds_pool_min_size: "{{ xian_profile_bds.get('pool_min_size', xian_bds_pool_min_size) | int }}"
