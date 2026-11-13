@@ -168,6 +168,25 @@ class GenesisFeePolicyTest(PlaybookTestCase):
             [argument for argument in arguments if "parallel-execution" in str(argument)], []
         )
 
+    def test_simulation_chi_cap_is_passed_only_when_the_profile_sets_one(self) -> None:
+        cases = (
+            ("unset", canonical_profile(), []),
+            ("null", canonical_profile(simulation_max_chi=None), []),
+            ("set", canonical_profile(simulation_max_chi=50000), ["50000"]),
+        )
+        for name, profile, expected in cases:
+            with self.subTest(name=name):
+                workdir = self.workdir / f"simulation-{name}"
+                workdir.mkdir()
+                result, arguments = render_configure_wrapper(workdir, profile=profile)
+                self.assertPlaySucceeded(result)
+                values = [
+                    arguments[index + 1]
+                    for index, argument in enumerate(arguments)
+                    if argument == "--simulation-max-chi"
+                ]
+                self.assertEqual(values, expected)
+
     def test_removed_parallel_execution_settings_are_rejected(self) -> None:
         for index, profile in enumerate(
             (

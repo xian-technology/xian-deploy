@@ -260,7 +260,8 @@
     xian_simulation_enabled: "{{ xian_profile.get('simulation_enabled', true) | bool }}"
     xian_simulation_max_concurrency: "{{ xian_profile.get('simulation_max_concurrency', 2) | int }}"
     xian_simulation_timeout_ms: "{{ xian_profile.get('simulation_timeout_ms', 3000) | int }}"
-    xian_simulation_max_chi: "{{ xian_profile.get('simulation_max_chi', 1000000) | int }}"
+    # Optional operator cap; empty leaves the chain's max_tx_chi in charge.
+    xian_simulation_max_chi: "{{ xian_profile.get('simulation_max_chi') | default('', true) }}"
     xian_pending_nonce_reservation_ttl_seconds: "{{ xian_profile_pending_nonce.get('reservation_ttl_seconds', 60.0) | float }}"
     xian_max_pending_nonces_per_sender: "{{ xian_profile_pending_nonce.get('max_per_sender', 128) | int }}"
     xian_statesync_enable: "{{ xian_profile_statesync.get('enabled', false) | bool }}"
