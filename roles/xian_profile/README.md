@@ -25,6 +25,12 @@ writes fee settings into `xian.toml`.
 
 CometBFT RPC binds to `127.0.0.1` unless `xian_public_rpc_enabled` is true.
 
+The profile's `advanced.metrics.host` and `advanced.metrics.port` choose where
+the node's app metrics are published on the host (`xian_app_metrics_bind_host`,
+`xian_app_metrics_port`; default `127.0.0.1:9108`), the same meaning as in
+`xian-cli` and `xian-stack`. Inside the container the node always listens on
+`0.0.0.0:9108`, which is also the in-network Prometheus target.
+
 BDS deployments must provide `xian_bds_password` from a private inventory,
 vault, or secret manager. Empty values and weak example passwords are rejected
 before runtime files are rendered.

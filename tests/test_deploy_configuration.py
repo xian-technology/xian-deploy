@@ -231,5 +231,56 @@ class PublicRpcTest(PlaybookTestCase):
         self.assertEqual(bind_host, "0.0.0.0")
 
 
+
+@requires_ansible
+class AppMetricsTest(PlaybookTestCase):
+    """The node listens on 0.0.0.0:9108 in the container; the profile sets the host side."""
+
+    def profile(self, metrics: dict) -> dict:
+        profile = canonical_profile()
+        profile["advanced"]["metrics"] = metrics
+        return profile
+
+    def published(self, metrics: dict):
+        report = self.workdir / "metrics.json"
+        result = run_play(
+            self.workdir,
+            variables={},
+            profile=self.profile(metrics),
+            tasks=[
+                {
+                    "ansible.builtin.copy": {
+                        "dest": str(report),
+                        "content": (
+                            '{"host": "{{ xian_app_metrics_bind_host }}", '
+                            '"port": {{ xian_app_metrics_port }}}'
+                        ),
+                    }
+                }
+            ],
+        )
+        return result, report.read_text() if report.exists() else None
+
+    def test_node_listens_on_the_fixed_container_address(self) -> None:
+        result, arguments = render_configure_wrapper(
+            self.workdir, profile=self.profile({"host": "127.0.0.1", "port": 39108})
+        )
+
+        self.assertPlaySucceeded(result)
+        self.assertEqual(option_values(arguments, "--metrics-host"), ["0.0.0.0"])
+        self.assertEqual(option_values(arguments, "--metrics-port"), ["9108"])
+
+    def test_profile_host_and_port_are_the_published_side(self) -> None:
+        result, published = self.published({"host": "10.0.0.5", "port": 39108})
+
+        self.assertPlaySucceeded(result)
+        self.assertEqual(published, '{"host": "10.0.0.5", "port": 39108}')
+
+    def test_metrics_are_published_locally_by_default(self) -> None:
+        result, published = self.published({})
+
+        self.assertPlaySucceeded(result)
+        self.assertEqual(published, '{"host": "127.0.0.1", "port": 9108}')
+
 if __name__ == "__main__":
     unittest.main()

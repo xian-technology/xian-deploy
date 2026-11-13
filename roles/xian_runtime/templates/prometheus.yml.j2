@@ -10,9 +10,9 @@ scrape_configs:
     static_configs:
       - targets:
 {% if xian_deploy_topology == "integrated" %}
-          - abci:{{ xian_metrics_port }}
+          - abci:{{ xian_app_metrics_container_port }}
 {% else %}
-          - abci-app:{{ xian_metrics_port }}
+          - abci-app:{{ xian_app_metrics_container_port }}
 {% endif %}
 
   - job_name: xian_cometbft

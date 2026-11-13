@@ -54,7 +54,9 @@ xian_p2p_bind_host: 0.0.0.0
 xian_p2p_port: 26656
 xian_comet_metrics_bind_host: 127.0.0.1
 xian_comet_metrics_port: 26660
-xian_app_metrics_bind_host: 127.0.0.1
+# App metrics are published on the node profile's advanced.metrics host and
+# port (default 127.0.0.1:9108); inside the container the node always listens
+# on 0.0.0.0:9108.
 xian_prometheus_bind_host: 127.0.0.1
 xian_prometheus_port: 9090
 xian_grafana_bind_host: 127.0.0.1

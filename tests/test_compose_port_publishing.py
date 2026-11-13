@@ -54,7 +54,7 @@ class ComposePortPublishingTest(unittest.TestCase):
             "published: {{ (xian_rpc_port | string) | to_json }}",
             "published: {{ (xian_p2p_port | string) | to_json }}",
             "published: {{ (xian_comet_metrics_port | string) | to_json }}",
-            "published: {{ (xian_metrics_port | string) | to_json }}",
+            "published: {{ (xian_app_metrics_port | string) | to_json }}",
             "published: {{ (xian_dashboard_port | string) | to_json }}",
         ):
             self.assertIn(expected, main_template)
@@ -70,6 +70,19 @@ class ComposePortPublishingTest(unittest.TestCase):
             len(re.findall(r"^\s+- target:", monitoring_template, re.MULTILINE)),
             2,
         )
+
+    def test_app_metrics_publish_the_fixed_container_port(self) -> None:
+        runtime = REPO_ROOT / "roles" / "xian_runtime" / "templates"
+        compose = (runtime / "docker-compose.yml.j2").read_text(encoding="utf-8")
+        prometheus = (runtime / "prometheus.yml.j2").read_text(encoding="utf-8")
+
+        targets = re.findall(
+            r"- target: (.+)\n\s+published: \{\{ \(xian_app_metrics_port", compose
+        )
+        self.assertEqual(targets, ["{{ xian_app_metrics_container_port }}"] * 2)
+        self.assertIn("- abci:{{ xian_app_metrics_container_port }}", prometheus)
+        self.assertIn("- abci-app:{{ xian_app_metrics_container_port }}", prometheus)
+        self.assertNotIn("xian_metrics_port", compose + prometheus)
 
     def test_monitoring_loopback_validation_normalizes_ipv6_hosts(self) -> None:
         source = (

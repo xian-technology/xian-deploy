@@ -67,8 +67,8 @@ services:
         published: {{ (xian_comet_metrics_port | string) | to_json }}
         host_ip: {{ (xian_comet_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
         protocol: tcp
-      - target: {{ xian_metrics_port | int }}
-        published: {{ (xian_metrics_port | string) | to_json }}
+      - target: {{ xian_app_metrics_container_port }}
+        published: {{ (xian_app_metrics_port | string) | to_json }}
         host_ip: {{ (xian_app_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
         protocol: tcp
 {% if xian_dashboard_enabled %}
@@ -134,8 +134,8 @@ services:
       - xian-db
 {% endif %}
     ports:
-      - target: {{ xian_metrics_port | int }}
-        published: {{ (xian_metrics_port | string) | to_json }}
+      - target: {{ xian_app_metrics_container_port }}
+        published: {{ (xian_app_metrics_port | string) | to_json }}
         host_ip: {{ (xian_app_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
         protocol: tcp
 

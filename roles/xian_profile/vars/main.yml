@@ -1,0 +1,6 @@
+---
+# The node's app metrics always listen here inside the container. The node
+# profile's advanced.metrics host and port only choose where Compose publishes
+# them on the host (xian_app_metrics_bind_host, xian_app_metrics_port).
+xian_app_metrics_container_host: "0.0.0.0"
+xian_app_metrics_container_port: 9108

@@ -26,7 +26,7 @@
 
     - name: Check Xian metrics endpoint
       ansible.builtin.uri:
-        url: "http://127.0.0.1:{{ xian_metrics_port }}/metrics"
+        url: "http://127.0.0.1:{{ xian_app_metrics_port }}/metrics"
         return_content: false
       register: xian_metrics_status
       changed_when: false
