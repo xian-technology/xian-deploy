@@ -10,9 +10,9 @@ def add(*values):
     args.extend(str(value) for value in values)
 
 
-def add_secret_file(flag, path, include_empty=False):
+def add_secret_file(flag, path):
     secret = Path(path).read_text(encoding="utf-8").strip()
-    if secret or include_empty:
+    if secret:
         add(flag, secret)
 
 
@@ -44,20 +44,11 @@ add("--metrics-port", {{ xian_app_metrics_container_port | to_json }})
 add("--metrics-bds-refresh-seconds", {{ xian_metrics_bds_refresh_seconds | to_json }})
 add("--pending-nonce-reservation-ttl-seconds", {{ xian_pending_nonce_reservation_ttl_seconds | to_json }})
 add("--max-pending-nonces-per-sender", {{ xian_max_pending_nonces_per_sender | to_json }})
-{% if xian_bds_enabled %}
-add_secret_file("--bds-dsn", {{ xian_container_bds_dsn_file | to_json }}, include_empty=True)
-{% else %}
-add("--bds-dsn", "")
-{% endif %}
+add("--bds-dsn", {{ (xian_bds_dsn if xian_bds_enabled else '') | to_json }})
 add("--bds-host", {{ (xian_bds_host if xian_bds_enabled else '') | to_json }})
 add("--bds-port", {{ xian_bds_port | to_json }})
 add("--bds-database", {{ xian_bds_database | to_json }})
 add("--bds-user", {{ (xian_bds_user if xian_bds_enabled else '') | to_json }})
-{% if xian_bds_enabled %}
-add_secret_file("--bds-password", {{ xian_container_bds_password_file | to_json }})
-{% else %}
-add("--bds-password", "")
-{% endif %}
 add("--bds-pool-min-size", {{ xian_bds_pool_min_size | to_json }})
 add("--bds-pool-max-size", {{ xian_bds_pool_max_size | to_json }})
 add("--bds-statement-timeout-ms", {{ xian_bds_statement_timeout_ms | to_json }})

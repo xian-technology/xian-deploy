@@ -123,7 +123,32 @@
       - operator_profile
       - services
       - advanced
-    xian_profile_unknown_keys: "{{ xian_profile.keys() | list | difference(xian_profile_allowed_top_level_keys) | sort }}"
+    xian_profile_allowed_bds_keys:
+      - enabled
+      - dsn
+      - host
+      - port
+      - database
+      - user
+      - pool_min_size
+      - pool_max_size
+      - statement_timeout_ms
+      - acquire_timeout_ms
+      - application_name
+      - queue_max_size
+      - catchup_enabled
+      - catchup_poll_seconds
+      - rpc_url
+      - spool_dir
+      - spool_warn_entries
+      - spool_warn_bytes
+      - disk_free_warn_bytes
+    xian_profile_unknown_keys: >-
+      {{
+        (xian_profile.keys() | list | difference(xian_profile_allowed_top_level_keys) | sort)
+        + (xian_profile_bds.keys() | list | difference(xian_profile_allowed_bds_keys) | sort
+           | map('regex_replace', '^', 'services.bds.') | list)
+      }}
   ansible.builtin.assert:
     that:
       - xian_profile_unknown_keys | length == 0
@@ -143,27 +168,6 @@
       - intentkit
       - dex_automation
       - shielded_relayer
-    xian_profile_allowed_bds_keys:
-      - enabled
-      - dsn
-      - host
-      - port
-      - database
-      - user
-      - password
-      - pool_min_size
-      - pool_max_size
-      - statement_timeout_ms
-      - acquire_timeout_ms
-      - application_name
-      - queue_max_size
-      - catchup_enabled
-      - catchup_poll_seconds
-      - rpc_url
-      - spool_dir
-      - spool_warn_entries
-      - spool_warn_bytes
-      - disk_free_warn_bytes
     xian_profile_allowed_dashboard_keys:
       - enabled
       - host
@@ -212,7 +216,6 @@
     that:
       - "(xian_profile_p2p.keys() | list | difference(xian_profile_allowed_p2p_keys) | length) == 0"
       - "(xian_profile_services.keys() | list | difference(xian_profile_allowed_service_keys) | length) == 0"
-      - "(xian_profile_bds.keys() | list | difference(xian_profile_allowed_bds_keys) | length) == 0"
       - "(xian_profile_dashboard.keys() | list | difference(xian_profile_allowed_dashboard_keys) | length) == 0"
       - "(xian_profile_monitoring.keys() | list | difference(xian_profile_allowed_monitoring_keys) | length) == 0"
       - "((xian_profile_services.get('intentkit', {}) | default({}, true)).keys() | list | difference(xian_profile_allowed_intentkit_keys) | length) == 0"
@@ -227,7 +230,6 @@
       - "(xian_profile_bds.get('dsn') | default('', true) | length) == 0"
       - "(xian_profile_bds.get('host') | default('', true) | length) == 0"
       - "(xian_profile_bds.get('user') | default('', true) | length) == 0"
-      - "(xian_profile_bds.get('password') | default('', true) | length) == 0"
       - "(xian_profile_bds.get('rpc_url') | default('', true) | length) == 0"
       - "(xian_profile_bds.get('spool_dir') | default('', true) | length) == 0"
       - "(xian_profile_bds.get('database') | default('xian', true)) == 'xian'"
@@ -469,7 +471,7 @@
   ansible.builtin.assert:
     that:
       - "xian_deploy_topology in ['integrated', 'fidelity']"
-      - "not (xian_bds_enabled | bool) or (xian_bds_dsn | length > 0) or ((xian_bds_host | length > 0) and (xian_bds_database | length > 0) and (xian_bds_user | length > 0) and (xian_bds_password | length > 0))"
+      - "not (xian_bds_enabled | bool) or (xian_bds_dsn | length > 0) or ((xian_bds_host | length > 0) and (xian_bds_database | length > 0) and (xian_bds_user | length > 0))"
       - "not (xian_bds_enabled | bool) or (xian_bds_password | length > 0)"
       - "not (xian_bds_enabled | bool) or ((xian_bds_password | lower) not in xian_weak_bds_passwords)"
       - "(xian_validator_private_key_hex | length == 0) or (xian_validator_private_key_hex is match('^[0-9a-fA-F]{64}$'))"

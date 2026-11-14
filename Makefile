@@ -12,7 +12,7 @@ test:
 validate:
 	$(MAKE) test
 	uvx --from ansible-core python tests/check_bds_health.py
-	cd tests && uvx --from ansible-core python -m unittest test_deploy_configuration test_upgrade_health_gate test_network_snapshot_restore
+	cd tests && uvx --from ansible-core python -m unittest test_deploy_configuration test_bds_secret test_upgrade_health_gate test_network_snapshot_restore
 	$(ANSIBLE_INVENTORY_CMD) -i inventories/example/hosts.yml --list >/dev/null
 	$(ANSIBLE) --syntax-check playbooks/bootstrap.yml
 	$(ANSIBLE) --syntax-check playbooks/push-home.yml

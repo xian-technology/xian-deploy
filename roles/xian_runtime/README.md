@@ -12,9 +12,11 @@ It is responsible for:
   sync controls
 - deriving the BDS catch-up RPC URL from the selected topology when
   `xian_bds_rpc_url` is left empty
-- rendering private BDS DSN/password and validator-key material into `0600`
-  files under `xian_runtime_secret_dir` and keeping those values out of
-  rendered Compose files and host command-line arguments
+- rendering the BDS password and validator-key material into `0600` files
+  under `xian_runtime_secret_dir` and keeping those values out of rendered
+  Compose files, `xian.toml` and host command-line arguments; the BDS password
+  file is mounted as the Compose secret `/run/secrets/xian_bds_password` for
+  both Postgres and the node
 
 It is not responsible for:
 

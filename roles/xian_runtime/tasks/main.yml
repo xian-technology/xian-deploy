@@ -68,27 +68,10 @@
     mode: "0700"
   when: xian_runtime_action == "deploy"
 
-- name: Render BDS runtime environment file
-  ansible.builtin.template:
-    src: bds.env.j2
-    dest: "{{ xian_bds_env_file }}"
-    mode: "0600"
-  no_log: true
-  when:
-    - xian_runtime_action == "deploy"
-    - xian_bds_enabled | bool
-
-- name: Render BDS DSN file
-  ansible.builtin.copy:
-    dest: "{{ xian_bds_dsn_file }}"
-    content: "{{ xian_bds_dsn }}\n"
-    mode: "0600"
-  no_log: true
-  when:
-    - xian_runtime_action == "deploy"
-    - xian_bds_enabled | bool
-
-- name: Render BDS Postgres password file
+# The one copy of the BDS password: Postgres (POSTGRES_PASSWORD_FILE) and the
+# node (xian.toml bds.password_file) both read it as the Compose secret
+# /run/secrets/xian_bds_password.
+- name: Render BDS password file
   ansible.builtin.copy:
     dest: "{{ xian_bds_password_file }}"
     content: "{{ xian_bds_password }}\n"
@@ -98,18 +81,24 @@
     - xian_runtime_action == "deploy"
     - xian_bds_enabled | bool
 
-- name: Remove stale BDS secret files
+- name: Remove stale BDS password file
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: "{{ xian_bds_password_file }}"
     state: absent
-  loop:
-    - "{{ xian_bds_env_file }}"
-    - "{{ xian_bds_dsn_file }}"
-    - "{{ xian_bds_password_file }}"
   no_log: true
   when:
     - xian_runtime_action == "deploy"
     - not (xian_bds_enabled | bool)
+
+# Earlier releases also wrote the password into these files.
+- name: Remove retired BDS environment and DSN files
+  ansible.builtin.file:
+    path: "{{ xian_runtime_secret_dir }}/{{ item }}"
+    state: absent
+  loop:
+    - bds.env
+    - bds-dsn
+  when: xian_runtime_action == "deploy"
 
 - name: Render validator private key file
   ansible.builtin.copy:
@@ -247,7 +236,7 @@
     --entrypoint python
     -v {{ xian_cometbft_home | quote }}:/root/.cometbft
     -v {{ (xian_configure_node_wrapper_path ~ ':' ~ xian_container_configure_node_wrapper_path ~ ':ro') | quote }}
-    {% if (xian_bds_enabled | bool) or (xian_validator_private_key_hex | length > 0) %}
+    {% if xian_validator_private_key_hex | length > 0 %}
     -v {{ (xian_runtime_secret_dir ~ ':' ~ xian_container_secret_dir ~ ':ro') | quote }}
     {% endif %}
     -e XIAN_CONFIGS_DIR=/opt/xian-configs

@@ -35,12 +35,19 @@ vars_files:
 ```
 
 When BDS is enabled, set `xian_bds_password` from a vault or secret manager.
-The deploy role rejects empty or weak example passwords. On the remote host it
-writes BDS runtime secrets, including DSNs that may contain credentials, under
-`xian_runtime_secret_dir` with directory mode `0700` and file mode `0600`;
-rendered Compose files only reference those file paths. Do not edit or commit
-generated files such as `bds.env`, `bds-dsn`, `bds-password`, or
-`validator-private-key.hex`.
+It is the only place the BDS password lives. The deploy role rejects empty or
+weak example passwords and writes the value to one file,
+`xian_runtime_secret_dir/bds-password` (directory mode `0700`, file mode
+`0600`). Compose mounts that file as the secret
+`/run/secrets/xian_bds_password` into Postgres (`POSTGRES_PASSWORD_FILE`) and
+into the node, whose `xian.toml` names it in `[bds] password_file`. The
+password never appears in `xian.toml`, an environment file, a rendered Compose
+file or a command line. All other BDS settings live only in the node's
+`xian.toml` `[bds]` table, written by `xian-configure-node` from the profile and
+inventory; the node rejects `XIAN_BDS_*` environment variables. `xian_bds_dsn`
+is not a secret and must not contain a password. Deploys remove the
+`bds.env` and `bds-dsn` files that earlier releases wrote. Do not edit or
+commit generated files such as `bds-password` or `validator-private-key.hex`.
 
 Prefer preparing validator keys in the node-home archive. If
 `xian_validator_private_key_hex` is supplied for a deployment, load it from a

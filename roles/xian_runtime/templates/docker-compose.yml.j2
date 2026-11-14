@@ -41,8 +41,8 @@ services:
       XIAN_PERF_RECENT_BLOCKS: {{ xian_perf_recent_blocks | to_json }}
       XIAN_PERF_OUTPUT_PATH: /root/.cometbft/xian-perf.json
 {% if xian_bds_enabled %}
-    env_file:
-      - {{ xian_bds_env_file | to_json }}
+    secrets:
+      - xian_bds_password
 {% endif %}
     networks:
       - xian-net
@@ -119,8 +119,8 @@ services:
       XIAN_PERF_RECENT_BLOCKS: {{ xian_perf_recent_blocks | to_json }}
       XIAN_PERF_OUTPUT_PATH: /root/.cometbft/xian-perf.json
 {% if xian_bds_enabled %}
-    env_file:
-      - {{ xian_bds_env_file | to_json }}
+    secrets:
+      - xian_bds_password
 {% endif %}
     command: ["xian-abci"]
     networks:

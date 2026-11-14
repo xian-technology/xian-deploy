@@ -32,8 +32,11 @@ the node's app metrics are published on the host (`xian_app_metrics_bind_host`,
 `0.0.0.0:9108`, which is also the in-network Prometheus target.
 
 BDS deployments must provide `xian_bds_password` from a private inventory,
-vault, or secret manager. Empty values and weak example passwords are rejected
-before runtime files are rendered.
+vault, or secret manager; it is the only source of the BDS password (see
+[docs/SECRETS.md](../../docs/SECRETS.md)). Empty values and weak example
+passwords are rejected before runtime files are rendered. Profiles carry no
+BDS password, and unknown profile keys (for example `services.bds.password`)
+fail by name.
 
 By default, remote runtime paths are derived from `xian_deploy_root`:
 `xian_runtime_dir`, `xian_cometbft_home`, `xian_bds_data_dir`,
