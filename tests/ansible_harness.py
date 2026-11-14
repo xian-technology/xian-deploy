@@ -44,7 +44,6 @@ def canonical_profile(**overrides) -> dict:
         "p2p": {"seeds": [], "persistent_peers": []},
         "block_policy_mode": "on_demand",
         "operator_profile": "local_development",
-        "monitoring_profile": "none",
         "services": {"bds": {"enabled": False}, "dashboard": {}, "monitoring": {}},
         "advanced": {
             "cometbft": {},

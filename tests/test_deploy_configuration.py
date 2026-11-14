@@ -208,6 +208,12 @@ class GenesisFeePolicyTest(PlaybookTestCase):
                 result, _ = render_configure_wrapper(workdir, profile=profile)
                 self.assertPlayFailed(result, "parallel executor was removed")
 
+    def test_unknown_profile_keys_are_rejected_by_name(self) -> None:
+        profile = canonical_profile(monitoring_profile="none")
+        result, _ = render_configure_wrapper(self.workdir, profile=profile)
+
+        self.assertPlayFailed(result, "unknown key(s): monitoring_profile")
+
     def test_fee_policy_requires_a_bundle_manifest_genesis(self) -> None:
         manifest = bundle_manifest(
             genesis={"kind": "source", "source": "./genesis.json"}, fee_policy=FREE_POLICY

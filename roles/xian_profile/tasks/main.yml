@@ -45,7 +45,6 @@
       - "(xian_profile.get('node_split_image') | default('', true) | length) > 0"
       - "xian_profile.get('block_policy_mode') in ['on_demand', 'idle_interval', 'periodic']"
       - "xian_profile.get('operator_profile') in ['local_development', 'indexed_development', 'shared_network']"
-      - "xian_profile.get('monitoring_profile') in ['none', 'local_stack', 'bds']"
     fail_msg: >-
       Remote deployment now uses node profiles directly. Provide a schema v1
       profile generated with node_image_mode=registry and complete
@@ -88,7 +87,7 @@
     xian_profile_metrics: "{{ xian_profile_advanced.get('metrics', {}) }}"
     xian_profile_pending_nonce: "{{ xian_profile_advanced.get('pending_nonce', {}) }}"
 
-- name: Validate canonical node profile keys and deploy boundary
+- name: Reject unknown node profile keys
   vars:
     xian_profile_allowed_top_level_keys:
       - schema_version
@@ -122,9 +121,18 @@
       - simulation_timeout_ms
       - simulation_max_chi
       - operator_profile
-      - monitoring_profile
       - services
       - advanced
+    xian_profile_unknown_keys: "{{ xian_profile.keys() | list | difference(xian_profile_allowed_top_level_keys) | sort }}"
+  ansible.builtin.assert:
+    that:
+      - xian_profile_unknown_keys | length == 0
+    fail_msg: >-
+      The node profile has unknown key(s): {{ xian_profile_unknown_keys | join(', ') }}.
+      Remove them or regenerate the profile with the current xian-cli.
+
+- name: Validate canonical node profile keys and deploy boundary
+  vars:
     xian_profile_allowed_p2p_keys:
       - seeds
       - persistent_peers
@@ -202,7 +210,6 @@
       - max_per_sender
   ansible.builtin.assert:
     that:
-      - "(xian_profile.keys() | list | difference(xian_profile_allowed_top_level_keys) | length) == 0"
       - "(xian_profile_p2p.keys() | list | difference(xian_profile_allowed_p2p_keys) | length) == 0"
       - "(xian_profile_services.keys() | list | difference(xian_profile_allowed_service_keys) | length) == 0"
       - "(xian_profile_bds.keys() | list | difference(xian_profile_allowed_bds_keys) | length) == 0"
