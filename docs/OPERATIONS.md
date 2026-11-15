@@ -200,6 +200,12 @@ ansible-playbook playbooks/deploy.yml
 ```
 
 This is the closest remote equivalent to a local `xian-cli` node-home restore.
+It is for a host whose node home has not signed yet. A prepared archive
+carries a fresh `data/priv_validator_state.json`, so `push-home.yml` refuses a
+home whose signing state is above height 0 (with either
+`xian_node_home_replace` value) instead of letting the validator sign those
+heights again. Recover such a node with paths 2 or 3, which keep its keys and
+signing state.
 
 ### 2. Application State Snapshot Import
 
