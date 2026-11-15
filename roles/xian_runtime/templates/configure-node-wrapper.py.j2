@@ -18,6 +18,7 @@ def add_secret_file(flag, path):
 
 add("--moniker", {{ xian_moniker | to_json }})
 add({{ ('--allow-cors' if xian_allow_cors else '--no-allow-cors') | to_json }})
+add("--p2p-external-address", {{ xian_p2p_external_address | string | to_json }})
 add({{ ('--prometheus' if xian_cometbft_prometheus_enabled else '--no-prometheus') | to_json }})
 add({{ ('--bds-enabled' if xian_bds_enabled else '--no-bds-enabled') | to_json }})
 add({{ ('--enable-pruning' if xian_pruning_enabled else '--no-enable-pruning') | to_json }})

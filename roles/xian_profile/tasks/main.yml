@@ -198,6 +198,7 @@
       - allow_cors
       - prometheus
       - proxy_app
+      - external_address
     xian_profile_allowed_statesync_keys:
       - enabled
       - rpc_servers
@@ -251,6 +252,7 @@
     xian_dashboard_enabled: "{{ xian_profile_dashboard.get('enabled', false) | bool }}"
     xian_monitoring_enabled: "{{ xian_profile_monitoring.get('enabled', false) | bool }}"
     xian_allow_cors: "{{ xian_profile_cometbft.get('allow_cors', true) | bool }}"
+    xian_p2p_external_address: "{{ xian_profile_cometbft.get('external_address', '') }}"
     xian_cometbft_prometheus_enabled: "{{ xian_profile_cometbft.get('prometheus', true) | bool }}"
     xian_pruning_enabled: "{{ xian_profile.get('pruning_enabled', false) | bool }}"
     xian_blocks_to_keep: "{{ xian_profile.get('blocks_to_keep', 100000) | int }}"

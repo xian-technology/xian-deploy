@@ -187,6 +187,26 @@ class GenesisFeePolicyTest(PlaybookTestCase):
                 ]
                 self.assertEqual(values, expected)
 
+    def test_profile_external_address_is_passed_to_configure(self) -> None:
+        def advanced(cometbft: dict) -> dict:
+            return {"cometbft": cometbft, "statesync": {}, "metrics": {}, "pending_nonce": {}}
+
+        cases = (
+            ("unset", canonical_profile(), [""]),
+            (
+                "set",
+                canonical_profile(advanced=advanced({"external_address": "203.0.113.10:26656"})),
+                ["203.0.113.10:26656"],
+            ),
+        )
+        for name, profile, expected in cases:
+            with self.subTest(name=name):
+                workdir = self.workdir / f"external-address-{name}"
+                workdir.mkdir()
+                result, arguments = render_configure_wrapper(workdir, profile=profile)
+                self.assertPlaySucceeded(result)
+                self.assertEqual(option_values(arguments, "--p2p-external-address"), expected)
+
     def test_removed_parallel_execution_settings_are_rejected(self) -> None:
         for index, profile in enumerate(
             (
