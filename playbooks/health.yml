@@ -15,7 +15,7 @@
         (['abci'] if xian_deploy_topology == 'integrated' else ['abci-app', 'cometbft'])
         + (['dashboard'] if xian_dashboard_enabled | bool else [])
         + (['postgres'] if xian_bds_enabled | bool else [])
-        + (['prometheus', 'grafana'] if xian_monitoring_enabled | bool else [])
+        + (['prometheus', 'grafana', 'node-exporter'] if xian_monitoring_enabled | bool else [])
       }}
   roles:
     - xian_profile

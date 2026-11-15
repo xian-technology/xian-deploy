@@ -57,3 +57,5 @@ xian_dashboard_port: 8080
 xian_require_digest_pinned_third_party_images: false
 xian_public_monitoring_enabled: false
 xian_monitoring_public_auth_confirmed: false
+# Alertmanager host:port targets for Prometheus; [] sends alerts nowhere.
+xian_alertmanager_targets: []

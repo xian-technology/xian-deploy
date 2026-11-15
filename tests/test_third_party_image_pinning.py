@@ -33,6 +33,13 @@ class ThirdPartyImagePinningTest(unittest.TestCase):
         self.assertIn("xian_postgres_image is match", source)
         self.assertIn("xian_prometheus_image is match", source)
         self.assertIn("xian_grafana_image is match", source)
+        self.assertIn("xian_node_exporter_image is match", source)
+
+    def test_example_inventory_names_every_monitoring_image(self) -> None:
+        example = REPO_ROOT / "inventories" / "example" / "group_vars" / "all" / "main.yml"
+        source = example.read_text(encoding="utf-8")
+
+        self.assertIn("xian_node_exporter_image: prom/node-exporter:v1.12.1", source)
 
 
 if __name__ == "__main__":

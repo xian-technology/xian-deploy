@@ -438,6 +438,14 @@
     xian_monitoring_dashboard_variant: "{{ xian_operator_profile if xian_operator_profile in ['shared_network'] else 'overview' }}"
     xian_monitoring_alert_variant: "{{ xian_operator_profile if xian_operator_profile in ['shared_network'] else 'none' }}"
 
+- name: Validate Alertmanager targets
+  ansible.builtin.assert:
+    that:
+      - xian_alertmanager_targets is sequence
+      - xian_alertmanager_targets is not string
+      - xian_alertmanager_targets | select('match', '^[^\\s:/]+:[0-9]+$') | list | length == xian_alertmanager_targets | length
+    fail_msg: xian_alertmanager_targets must be a list of host:port strings, for example ["alertmanager.ops.internal:9093"].
+
 - name: Validate derived profile runtime settings
   vars:
     xian_weak_bds_passwords:
@@ -501,6 +509,10 @@
         not (xian_digest_pinned_third_party_required | bool)
         or not (xian_monitoring_enabled | bool)
         or (xian_grafana_image is match(xian_digest_pinned_image_ref_pattern))
+      - >-
+        not (xian_digest_pinned_third_party_required | bool)
+        or not (xian_monitoring_enabled | bool)
+        or (xian_node_exporter_image is match(xian_digest_pinned_image_ref_pattern))
     fail_msg: >-
       The node profile produced an invalid remote runtime. Check the profile
       services, advanced state-sync settings, BDS deployment bindings,
@@ -509,4 +521,5 @@
       monitoring binds require xian_public_monitoring_enabled=true and
       xian_monitoring_public_auth_confirmed=true. Shared-network or otherwise
       strict production deployments must use digest-pinned Postgres,
-      Prometheus, and Grafana image refs for each enabled service.
+      Prometheus, Grafana, and node-exporter image refs for each enabled
+      service.

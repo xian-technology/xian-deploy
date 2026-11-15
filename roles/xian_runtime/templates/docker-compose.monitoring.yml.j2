@@ -34,6 +34,20 @@ services:
         host_ip: {{ (xian_prometheus_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
         protocol: tcp
 
+  # Host metrics for the disk alerts. Reachable only on the compose network
+  # (Prometheus scrapes node-exporter:9100); no port is published. The host
+  # root is mounted read-only without mount propagation.
+  node-exporter:
+    logging: *x-logging
+    image: {{ xian_node_exporter_image | to_json }}
+    restart: always
+    hostname: {{ xian_project_name }}-node-exporter
+    command: ["--path.rootfs=/host"]
+    volumes:
+      - /:/host:ro
+    networks:
+      - xian-net
+
   grafana:
     logging: *x-logging
     image: {{ xian_grafana_image | to_json }}

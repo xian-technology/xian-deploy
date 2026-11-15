@@ -19,6 +19,14 @@ class MonitoringSecurityTest(unittest.TestCase):
 
         self.assertNotIn("--web.enable-lifecycle", template.read_text(encoding="utf-8"))
 
+    def test_health_expects_node_exporter_with_monitoring(self) -> None:
+        health = (REPO_ROOT / "playbooks" / "health.yml").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "(['prometheus', 'grafana', 'node-exporter'] if xian_monitoring_enabled | bool else [])",
+            health,
+        )
+
     def test_public_monitoring_requires_opt_in_and_auth_confirmation(self) -> None:
         profile_tasks = REPO_ROOT / "roles" / "xian_profile" / "tasks" / "main.yml"
         source = profile_tasks.read_text(encoding="utf-8")

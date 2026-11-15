@@ -4,6 +4,13 @@ global:
 
 rule_files:
   - /etc/prometheus/rules.yml
+{% if xian_alertmanager_targets | length > 0 %}
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: {{ xian_alertmanager_targets | to_json }}
+{% endif %}
 
 scrape_configs:
   - job_name: xian_abci
@@ -23,3 +30,8 @@ scrape_configs:
 {% else %}
           - cometbft:26660
 {% endif %}
+
+  - job_name: xian_node
+    static_configs:
+      - targets:
+          - node-exporter:9100
