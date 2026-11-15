@@ -133,10 +133,12 @@ When monitoring is enabled, the runtime now stages:
 - an example Alertmanager routing file at
   `{{ xian_runtime_dir }}/monitoring/alertmanager/alertmanager.example.yml`
 
-The Alertmanager file is an example only. It is not started or wired
-automatically. Use it as the starting point when you want:
+The Alertmanager file is an example only. It is not started, and the rendered
+Prometheus configuration has no `alerting` section, so the shipped rules are
+evaluated (visible on Prometheus' alerts page) but notify nobody until you run
+Alertmanager and point Prometheus at it. Use the example as the starting point
+when you want:
 
-- VM mismatch alerts routed to a high-priority receiver
 - BDS recovery alerts routed to an operator or storage/on-call receiver
 - infrastructure-critical alerts separated from warning-grade operational noise
 
@@ -152,22 +154,6 @@ Bind hosts may be IPv4 or IPv6 literals. Prefer unbracketed IPv6 values such as
 `::1` or `2001:db8::10` in inventory; the Compose templates render long-form
 port publications with `host_ip`, so IPv6 colons are not parsed as port
 separators.
-
-## VM Mismatch Alert Response
-
-Treat `XianVmShadowMismatchDetected` as a rollout-integrity alert.
-
-Recommended response:
-
-1. Open the `Xian VM Runtime` dashboard and identify the affected instance and
-   runtime health fields.
-2. Inspect node logs and the local `xian-perf.json` snapshot for the same block
-   height.
-3. Capture the block height, app hash, and affected node identity before
-   restarting or redeploying anything.
-
-Do not ignore repeated mismatches. A mismatch means the two engines disagreed on
-an authoritative state transition shape.
 
 ## BDS Recovery Alert Response
 
