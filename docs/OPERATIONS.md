@@ -116,7 +116,8 @@ Remote shared-network deployments require digest-pinned third-party service
 images for each enabled service:
 
 - `xian_postgres_image` when BDS/Postgres is enabled
-- `xian_prometheus_image` and `xian_grafana_image` when monitoring is enabled
+- `xian_prometheus_image`, `xian_grafana_image`, and `xian_node_exporter_image`
+  when monitoring is enabled
 
 Use image references such as `postgres:17.10@sha256:<digest>` or
 `prom/prometheus:v3.12.0@sha256:<digest>`. Local-development and example
@@ -128,19 +129,61 @@ same strict behavior outside shared-network profiles by setting
 
 When monitoring is enabled, the runtime now stages:
 
+- Prometheus with the alert rules for the profile, and node-exporter for host
+  disk metrics (read-only host root, no published port, scraped as job
+  `xian_node`)
 - the `Xian VM Runtime` Grafana dashboard
 - the `Xian BDS Recovery` Grafana dashboard
 - an example Alertmanager routing file at
   `{{ xian_runtime_dir }}/monitoring/alertmanager/alertmanager.example.yml`
 
-The Alertmanager file is an example only. It is not started, and the rendered
-Prometheus configuration has no `alerting` section, so the shipped rules are
-evaluated (visible on Prometheus' alerts page) but notify nobody until you run
-Alertmanager and point Prometheus at it. Use the example as the starting point
-when you want:
+`shared_network` profiles get these alerts in addition to the target, node
+info, app block-progress, and BDS alerts (development profiles get none):
 
-- BDS recovery alerts routed to an operator or storage/on-call receiver
-- infrastructure-critical alerts separated from warning-grade operational noise
+| Alert | Fires when | Severity |
+| --- | --- | --- |
+| `XianBlockProductionStalled` | CometBFT's committed height has not moved for 5 minutes (only rendered for `idle_interval`/`periodic` block policies; an `on_demand` chain stops while idle) | critical |
+| `XianNoPeers` | 0 connected peers for 2 minutes | critical |
+| `XianPeersLow` | fewer than 2 peers for 10 minutes | warning |
+| `XianValidatorNotSigning` | this node's validator last signed more than 10 blocks below the committed height for 2 minutes | critical |
+| `XianValidatorMissedBlocks` | this node's validator missed 5 or more commits in 10 minutes | warning |
+| `XianDiskSpaceCritical` / `XianDiskSpaceLow` | a real filesystem has less than 5% (5 min) / 15% (10 min) free | critical / warning |
+| `XianDiskFillingUp` | under 25% free and empty within 24 hours at the 6-hour rate | warning |
+
+CometBFT exports the two validator series only for the node's own key, so the
+validator alerts stay silent on non-validators. After a validator leaves the
+set on purpose, restart the node to drop its stale last-signed series.
+`tests/test_monitoring_rules.py` renders the rules for real profiles and runs
+the promtool unit tests in `tests/monitoring/`; extend them with every rule
+change.
+
+### Delivering Alerts
+
+Prometheus evaluates the rules and shows them on its Alerts page, but notifies
+nobody until it knows an Alertmanager. The deployment does not run one and
+ships no receiver. To deliver alerts:
+
+1. Write your routing from `alertmanager.example.yml`: keep the routes and
+   inhibit rules, replace the example webhook receivers with your own
+   (`webhook_configs`, `email_configs`, `slack_configs`, `pagerduty_configs`,
+   ...), and check it with `amtool check-config`.
+2. Run Alertmanager where the node's Prometheus can reach it: a host or
+   service of your own, or a container attached to the monitoring network
+   (`<project>_xian-net`). Keep its port on loopback or behind authenticated
+   access, like Prometheus and Grafana.
+3. Set `xian_alertmanager_targets` in the inventory, for example
+   `["alertmanager.ops.internal:9093"]`, and run `playbooks/deploy.yml`. The
+   rendered Prometheus configuration then gets the `alerting` section for
+   those targets; the default `[]` renders none.
+4. Confirm that `http://127.0.0.1:<prometheus port>/api/v1/alertmanagers`
+   lists the targets as active, then send a test alert
+   (`amtool alert add XianTestAlert --alertmanager.url=http://<target>`) and
+   check that your receiver gets it.
+
+The example routing sends critical alerts, BDS recovery alerts, and warnings
+to separate receivers, and inhibits the CometBFT-derived alerts while the
+CometBFT target is down, `XianPeersLow` under `XianNoPeers`, and the low or
+filling disk alerts under `XianDiskSpaceCritical`.
 
 Prometheus and Grafana bind to loopback by default. If a private inventory binds
 either service to a non-loopback address, set both
