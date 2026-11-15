@@ -66,6 +66,9 @@ add("--bds-disk-free-warn-bytes", {{ xian_bds_disk_free_warn_bytes | to_json }})
 {% if xian_genesis_source | length > 0 %}
 add("--genesis-source", {{ xian_genesis_source | to_json }})
 {% endif %}
+{% if xian_genesis_sha256 | length > 0 %}
+add("--genesis-sha256", {{ xian_genesis_sha256 | to_json }})
+{% endif %}
 {% if xian_genesis_bundle | length > 0 %}
 add("--genesis-bundle", {{ xian_genesis_bundle | to_json }})
 add("--chain-id", {{ xian_effective_chain_id | to_json }})

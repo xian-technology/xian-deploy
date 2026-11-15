@@ -16,7 +16,8 @@ Optional `xian_network_manifest` points at the network manifest used by
 `xian node init`. It is required when deploy builds a bundle genesis and then
 supplies `chain_id`, `genesis_time`, `runtime_features`, and `fee_policy`, using the same
 profile-over-manifest genesis precedence as `xian node init`. A bundle genesis
-without a fixed `genesis_time` is rejected.
+without a fixed `genesis_time` is rejected. A manifest `genesis_sha256` is
+passed to configure, which refuses a home genesis that does not match it.
 
 The transaction fee policy is genesis state. Node profiles that set
 `tx_fee_mode`, `max_tx_chi`, or `max_block_chi` are rejected; deploy

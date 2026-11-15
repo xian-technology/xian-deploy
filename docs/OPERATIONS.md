@@ -87,6 +87,12 @@ profile-over-manifest precedence as `xian node init`, and rejects a bundle
 genesis without a fixed `genesis_time`. A manifest `source` genesis is not
 copied; the pushed node home already contains it.
 
+When the manifest pins `genesis_sha256`, deploy passes it to
+`xian-configure-node --genesis-sha256`, which checks the genesis the home will
+run (the rebuilt bundle, the copied profile source, or the pushed home's
+genesis) and fails the deploy before writing anything when it hashes
+differently.
+
 ## Remote Health
 
 Use the remote health playbook when you want the deployment-side equivalent of

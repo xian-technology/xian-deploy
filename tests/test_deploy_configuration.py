@@ -107,6 +107,33 @@ class BundleGenesisTest(PlaybookTestCase):
         self.assertNotIn("--chain-id", arguments)
 
 
+PIN = "ab" * 32
+
+
+@requires_ansible
+class GenesisPinTest(PlaybookTestCase):
+    """Deploy hands the manifest's genesis_sha256 to xian-configure-node, which
+    refuses a rebuilt, copied or already installed genesis that differs."""
+
+    def test_the_manifest_pin_reaches_configure_for_every_genesis_kind(self) -> None:
+        manifests = {
+            "bundle": bundle_manifest(genesis_sha256=PIN),
+            "source": bundle_manifest(
+                genesis={"kind": "source", "source": "./genesis.json"}, genesis_sha256=PIN
+            ),
+            "unpinned": bundle_manifest(),
+        }
+        for name, manifest in manifests.items():
+            with self.subTest(name=name):
+                workdir = self.workdir / f"pin-{name}"
+                workdir.mkdir()
+                result, arguments = render_configure_wrapper(workdir, manifest=manifest)
+
+                self.assertPlaySucceeded(result)
+                expected = [] if name == "unpinned" else [PIN]
+                self.assertEqual(option_values(arguments, "--genesis-sha256"), expected)
+
+
 FEE_OPTIONS = ("--tx-fee-mode", "--max-tx-chi", "--max-block-chi")
 FREE_POLICY = {
     "tx_fee_mode": "free_metered",

@@ -8,6 +8,7 @@ under a temporary HOME; it starts no node and touches no container.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -45,7 +46,7 @@ MANIFEST = {
 @requires_ansible
 @unittest.skipUnless(PARITY_PYTHON and PARITY_CONFIGS, "genesis parity check is opt-in")
 class GenesisParityTest(PlaybookTestCase):
-    def test_deploy_and_node_init_build_the_same_bundle_genesis(self) -> None:
+    def _node_init_genesis(self) -> bytes:
         cli = self.workdir / "cli"
         (cli / "networks" / "parity").mkdir(parents=True)
         (cli / "networks" / "parity" / "manifest.json").write_text(json.dumps(MANIFEST))
@@ -57,11 +58,17 @@ class GenesisParityTest(PlaybookTestCase):
             check=True,
             capture_output=True,
         )
+        # Deploy configures a pushed home: same layout, genesis rebuilt remotely.
+        home = self.workdir / "remote" / ".cometbft"
+        shutil.copytree(cli / "home" / "config", home / "config")
+        (home / "config" / "genesis.json").unlink()
+        return (cli / "home" / "config" / "genesis.json").read_bytes()
 
+    def _deploy_configure(self, manifest: dict) -> subprocess.CompletedProcess:
         wrapper = self.workdir / "wrapper.py"
         result = run_play(
             self.workdir,
-            manifest=MANIFEST,
+            manifest=manifest,
             variables={"xian_effective_bds_rpc_url": ""},
             tasks=[
                 {
@@ -75,25 +82,38 @@ class GenesisParityTest(PlaybookTestCase):
             ],
         )
         self.assertPlaySucceeded(result)
-        # Deploy configures a pushed home: same layout, genesis rebuilt remotely.
-        home = self.workdir / "remote" / ".cometbft"
-        shutil.copytree(cli / "home" / "config", home / "config")
-        (home / "config" / "genesis.json").unlink()
-        subprocess.run(
+        return subprocess.run(
             [PARITY_PYTHON, str(wrapper)],
             env={
                 **os.environ,
                 "HOME": str(self.workdir / "remote"),
                 "XIAN_CONFIGS_DIR": PARITY_CONFIGS,
             },
-            check=True,
             capture_output=True,
+            text=True,
         )
 
-        self.assertEqual(
-            (home / "config" / "genesis.json").read_bytes(),
-            (cli / "home" / "config" / "genesis.json").read_bytes(),
-        )
+    def _deployed_genesis(self) -> Path:
+        return self.workdir / "remote" / ".cometbft" / "config" / "genesis.json"
+
+    def test_deploy_and_node_init_build_the_same_bundle_genesis(self) -> None:
+        node_init_genesis = self._node_init_genesis()
+
+        self.assertEqual(self._deploy_configure(MANIFEST).returncode, 0)
+
+        self.assertEqual(self._deployed_genesis().read_bytes(), node_init_genesis)
+
+    def test_deploy_installs_only_the_pinned_genesis(self) -> None:
+        pin = hashlib.sha256(self._node_init_genesis()).hexdigest()
+
+        refused = self._deploy_configure(MANIFEST | {"genesis_sha256": "0" * 64})
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("genesis_sha256", refused.stderr)
+        self.assertFalse(self._deployed_genesis().exists())
+
+        accepted = self._deploy_configure(MANIFEST | {"genesis_sha256": pin})
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        self.assertEqual(hashlib.sha256(self._deployed_genesis().read_bytes()).hexdigest(), pin)
 
 
 if __name__ == "__main__":

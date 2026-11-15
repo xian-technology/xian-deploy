@@ -345,6 +345,8 @@
       }}
     xian_effective_chain_id: "{{ xian_network.get('chain_id') | default(xian_chain_id, true) }}"
     xian_runtime_features: "{{ xian_network.get('runtime_features') | default({}, true) }}"
+    # The network's genesis pin; configure refuses a genesis that hashes differently.
+    xian_genesis_sha256: "{{ xian_network.get('genesis_sha256') | default('', true) }}"
 
 # A manifest source genesis is a control-machine file already materialized in
 # the pushed node home, so only profile sources are copied from xian-configs.
