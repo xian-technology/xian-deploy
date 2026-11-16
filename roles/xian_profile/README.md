@@ -19,18 +19,14 @@ profile-over-manifest genesis precedence as `xian node init`. A bundle genesis
 without a fixed `genesis_time` is rejected. A manifest `genesis_sha256` is
 passed to configure, which refuses a home genesis that does not match it.
 
-For enabled protocol state sync, the role consumes `node_release_manifest`
-from the profile, falling back to the network manifest only when the profile
-has no override. It requires integer release schema 1 and a history-aware
-`build`: CometBFT `0.40.0`, a 40-character lowercase `cometbft_source_commit`,
-the matching official commit-specific `cometbft_source_url`, a lowercase
-64-character `cometbft_source_sha256`, a repository-relative
-`docker/cometbft-patches/*.patch` path, a lowercase 64-character
-`cometbft_patch_sha256`, and string `cometbft_history_revision: "1"`.
-The validated intended build is available as `xian_statesync_history_build`.
-These values are configuration diagnostics, not attestation of the deployed
-image; the application's private capability and historical bootstrap guards
-enforce safety. Ordinary replay does not require history-build metadata.
+P2P application state sync is disabled with unmodified upstream CometBFT.
+The role rejects `advanced.statesync.enabled=true` before runtime deployment,
+regardless of release metadata or trust settings. Use ordinary replay or a
+verified full-node-store archive through `restore-network-snapshot.yml`.
+The explicit stop action remains available for an unsupported existing profile;
+it never starts or reconfigures the node.
+Upstream source commit/URL/SHA256 provenance remains in the release manifest;
+custom patch/history metadata is not required.
 
 The transaction fee policy is genesis state. Node profiles that set
 `tx_fee_mode`, `max_tx_chi`, or `max_block_chi` are rejected; deploy

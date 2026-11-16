@@ -111,63 +111,53 @@
         - (xian_health_bds_raw.json.result.response.value | default('')) | length > 0
 
     - name: Read rendered state-sync readiness
-      ansible.builtin.shell: >-
+      ansible.builtin.shell: |
         python3 - <<'PY' {{ xian_cometbft_home | quote }}
         import json
         import sys
         import tomllib
         from pathlib import Path
 
-        home = Path(sys.argv[1])
-        config_path = home / "config" / "config.toml"
-        if not config_path.exists():
+        config_path = Path(sys.argv[1]) / "config" / "config.toml"
+        try:
+            config = tomllib.loads(config_path.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError) as exc:
             print(json.dumps({
-                "state": "unavailable",
-                "ready": False,
-                "error": f"{config_path} does not exist",
+                "state": "unavailable", "ready": False,
+                "error": f"cannot read rendered CometBFT configuration: {exc}",
             }))
             raise SystemExit(0)
 
-        config = tomllib.loads(config_path.read_text(encoding="utf-8"))
         statesync = config.get("statesync", {})
+        if not isinstance(statesync, dict):
+            print(json.dumps({
+                "state": "unavailable", "ready": False,
+                "error": "cannot read rendered CometBFT configuration: invalid statesync section",
+            }))
+            raise SystemExit(0)
         enabled = bool(statesync.get("enable"))
-        rpc_servers = [
-            server.strip()
-            for server in str(statesync.get("rpc_servers", "")).split(",")
-            if server.strip()
-        ]
-        trust_height = int(statesync.get("trust_height", 0) or 0)
-        trust_hash = str(statesync.get("trust_hash", "") or "")
-        trust_period = str(statesync.get("trust_period", "") or "")
-
-        if not enabled:
-            state = "disabled"
-            ready = False
-        else:
-            ready = (
-                len(rpc_servers) >= 2
-                and trust_height > 0
-                and bool(trust_hash)
-                and bool(trust_period)
+        result = {"enabled": enabled, "state": "unsupported" if enabled else "disabled", "ready": False}
+        if enabled:
+            result["error"] = (
+                "P2P application state sync is disabled with unmodified upstream CometBFT. "
+                "Use ordinary replay or a verified full-node-store snapshot."
             )
-            state = "configured" if ready else "incomplete"
-
-        print(json.dumps({
-            "enabled": enabled,
-            "state": state,
-            "ready": ready,
-            "rpc_servers": rpc_servers,
-            "trust_height": trust_height,
-            "trust_hash_present": bool(trust_hash),
-            "trust_period": trust_period,
-        }))
+        print(json.dumps(result))
         PY
       register: xian_health_statesync
       changed_when: false
       failed_when: false
 
+    - name: Require disabled rendered state sync
+      ansible.builtin.assert:
+        that:
+          - (xian_health_statesync.stdout | default('{}', true) | from_json).get('state') == 'disabled'
+        fail_msg: >-
+          {{ (xian_health_statesync.stdout | default('{}', true) | from_json).get(
+               'error', 'cannot read rendered CometBFT configuration for P2P state-sync validation') }}
+
     - name: Read remote disk health summary
-      ansible.builtin.shell: >-
+      ansible.builtin.shell: |
         python3 - <<'PY' {{ xian_deploy_root | quote }} {{ xian_bds_spool_dir | quote }} {{ (1 if xian_bds_enabled else 0) | quote }} {{ xian_bds_disk_free_warn_bytes | quote }}
         import json
         import shutil
@@ -280,7 +270,7 @@
             statesync:
               ok: >-
                 {{
-                  (xian_health_statesync.stdout | from_json).state in ['disabled', 'configured']
+                  (xian_health_statesync.stdout | from_json).state == 'disabled'
                   if (xian_health_statesync.stdout | default('') | length) > 0
                   else False
                 }}

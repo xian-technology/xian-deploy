@@ -53,8 +53,8 @@ That flow assumes:
   unless a private inventory deliberately overrides them. Inventory should not
   duplicate profile runtime settings.
 - **Composable flows.** Bootstrap, deploy, upgrade, health, restart, smoke,
-  state-sync, and snapshot recovery are separate playbooks. They can be
-  invoked in isolation.
+  and full-store snapshot recovery are separate playbooks. Retired P2P state
+  sync and app-only bootstrap entrypoints explain the supported alternatives.
 - **Optional layers stay optional.** Dashboard, BDS, and monitoring layer on
   top of the core node runtime; nothing in this repo forces them on.
 - **Node-home preparation is elsewhere.** `xian-cli` owns generating and
@@ -89,22 +89,25 @@ That flow assumes:
 | `playbooks/status.yml`            | inspect remote runtime status                              |
 | `playbooks/health.yml`            | run remote health checks                                   |
 | `playbooks/smoke.yml`             | run remote smoke tests                                     |
-| `playbooks/bootstrap-state-sync.yml` | join an existing network via protocol state sync       |
-| `playbooks/restore-state-snapshot.yml` | restore an application-state snapshot                |
+| `playbooks/bootstrap-state-sync.yml` | unsupported; explains replay/full-store alternatives       |
+| `playbooks/restore-state-snapshot.yml` | unsupported as node bootstrap; offline API only |
 | `playbooks/restore-network-snapshot.yml` | stop, restore the profile's signed snapshot, start |
 
 Generate node profiles from the matching `xian-configs/templates/` starter and
 set `xian_node_profile` per host as described in `docs/EXAMPLES.md`.
 
-When a profile enables protocol state sync, deployment requires intended
-CometBFT 0.40.0 history revision 1 metadata in its `node_release_manifest`, or
-the network manifest's when no profile override is present. The profile role
-validates the source commit, official source URL and SHA256, repository-relative
-patch path, patch SHA256, and history revision before deploying. The bootstrap
-summary reports this intended build. Metadata diagnoses the configured artifact;
-the application's private capability handshake and verified historical
-bootstrap enforce safety. Profiles using ordinary replay keep their existing
-artifact requirements.
+Xian uses unmodified upstream CometBFT. Profiles with P2P application state
+sync enabled are rejected before deployment. `bootstrap-state-sync.yml` also
+fails before connecting to a host. Use ordinary replay or
+`restore-network-snapshot.yml` with a verified full-node-store snapshot.
+
+Full-store restore consumes the profile's `snapshot_url` and trusted
+`snapshot_signing_keys`, stops the node, and delegates signature, chain/genesis,
+application-root, checkpoint and complete-store verification to `xian-abci`.
+Recipient keys and signing state are preserved. Snapshot trust rests on the
+configured signer; it does not independently replay every block. App-only
+SnapshotManager exports remain offline APIs; `restore-state-snapshot.yml`
+rejects their use as automated node bootstrap/redeployment.
 
 ## Validation
 

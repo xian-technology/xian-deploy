@@ -7,26 +7,31 @@
 - `bootstrap.yml`: prepare the host
 - `push-home.yml`: upload a prepared node home
 - `deploy.yml`: deploy or update the runtime
-- `health.yml`: detailed remote runtime, BDS, state-sync, and disk checks
+- `health.yml`: remote runtime, BDS, disabled P2P state-sync, and disk checks
 - `upgrade.yml`: serial rollout
-- `bootstrap-state-sync.yml`: deploy with validated state-sync settings
-- `restore-state-snapshot.yml`: restore an exported state snapshot
+- `restore-network-snapshot.yml`: verify and restore a signed full-node store
+- `bootstrap-state-sync.yml`: refuse unsupported P2P application state sync
+- `restore-state-snapshot.yml`: refuse app-only node bootstrap/redeployment
 - `smoke.yml`: basic post-deploy health check
 
 ## Typical Flow
 1. `bootstrap.yml`
-2. `push-home.yml` or `bootstrap-state-sync.yml`
+2. `push-home.yml` for a fresh home that has never signed
 3. `deploy.yml`
 4. `health.yml`
 5. `upgrade.yml` for later image rollouts
+
+For an initialized home, `restore-network-snapshot.yml` stops the runtime,
+verifies and restores the profile's signed full-store snapshot, then starts it.
+Existing node/validator keys and signing state are preserved.
 
 ```mermaid
 flowchart LR
   Profile["xian_node_profile"] --> Deploy["deploy.yml"]
   Bootstrap["bootstrap.yml"] --> Home["push-home.yml"]
-  Bootstrap --> StateSync["bootstrap-state-sync.yml"]
+  Snapshot["verified full-store manifest"] --> Restore["restore-network-snapshot.yml"]
   Home --> Deploy["deploy.yml"]
-  StateSync --> Deploy
+  Restore --> Health
   Deploy --> Health["health.yml"]
   Health --> Smoke["smoke.yml"]
   Health --> Upgrade["upgrade.yml"]

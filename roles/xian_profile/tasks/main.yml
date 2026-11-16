@@ -333,9 +333,15 @@
         else {}
       }}
 
-- name: Validate the intended history-aware state-sync artifact
-  ansible.builtin.include_tasks: history_bootstrap.yml
-  when: xian_statesync_enable | bool
+- name: Refuse unsupported P2P application state sync
+  ansible.builtin.assert:
+    that:
+      - not (xian_statesync_enable | bool)
+    fail_msg: >-
+      P2P application state sync is disabled with unmodified upstream CometBFT.
+      Use ordinary replay or a verified full-node-store snapshot with
+      restore-network-snapshot.yml.
+  when: (xian_runtime_action | default('deploy')) != 'stop'
 
 # Same precedence as `xian node init`: the profile genesis overrides the
 # manifest genesis, and chain_id/runtime_features belong to the manifest.
@@ -491,10 +497,6 @@
       - "not (xian_bds_enabled | bool) or (xian_bds_password | length > 0)"
       - "not (xian_bds_enabled | bool) or ((xian_bds_password | lower) not in xian_weak_bds_passwords)"
       - "(xian_validator_private_key_hex | length == 0) or (xian_validator_private_key_hex is match('^[0-9a-fA-F]{64}$'))"
-      - "not (xian_statesync_enable | bool) or (xian_statesync_rpc_servers | length >= 2)"
-      - "not (xian_statesync_enable | bool) or (xian_statesync_trust_height | int > 0)"
-      - "not (xian_statesync_enable | bool) or (xian_statesync_trust_hash | length > 0)"
-      - "not (xian_statesync_enable | bool) or (xian_statesync_trust_period | length > 0)"
       - >-
         not (xian_monitoring_enabled | bool)
         or not (xian_monitoring_uses_public_bind | bool)

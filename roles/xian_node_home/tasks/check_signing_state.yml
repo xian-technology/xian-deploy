@@ -71,7 +71,7 @@
     fail_msg: >-
       {{ xian_cometbft_home }} has signed up to height {{ xian_node_home_signed_height }}.
       push-home places a prepared home on a fresh host and would reset that
-      signing state. Restore this node with restore-state-snapshot.yml or
-      restore-network-snapshot.yml, which keep its keys and signing state; to
+      signing state. Restore this node with a verified full-node-store snapshot
+      using restore-network-snapshot.yml, which keeps its keys and signing state; to
       retire the home deliberately, stop the runtime and move it away first.
 

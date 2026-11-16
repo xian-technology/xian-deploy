@@ -245,39 +245,23 @@ The role verifies `config/config.toml` before trusting that state file. Missing
 or invalid configuration, custom signing-state paths, and external signers
 are refused because a default height-zero file does not prove their signing
 history is empty. Preserve those homes and use a recovery workflow instead.
-Recover such a node with paths 2 or 3, which keep its keys and signing state.
+Recover such a node with path 3, which keeps its keys and signing state.
 If a managed runtime exists, the role stops it and rechecks signing state
 before replacing the home, so signing progress made during shutdown cannot be
 erased. Processes started outside the managed Compose runtime must be stopped
 before this workflow.
 
-### 2. Application State Snapshot Import
+### 2. Offline Application State Snapshots
 
-Use this when you have an exported `xian-state-snapshot` archive and want to
-restore the application state into an existing remote home.
+`xian-state-snapshot` export/import operates on application data only. It does
+not contain CometBFT's complete consensus, block and evidence stores and cannot
+bootstrap a node. `restore-state-snapshot.yml` refuses an import followed by
+automatic redeployment and directs operators to replay or the full-store flow.
+Use the offline APIs separately for analysis/service workflows.
+`scripts/validate_state_snapshot_archive.py` checks this offline format only;
+it does not verify a bootable full-node store.
 
-```bash
-ansible-playbook playbooks/restore-state-snapshot.yml
-```
-
-Required variable:
-
-- `xian_state_snapshot_archive`
-- `xian_state_snapshot_sha256`
-- `xian_state_snapshot_expected_chain_id`
-- `xian_state_snapshot_expected_height`
-
-Optional additional pin:
-
-- `xian_state_snapshot_expected_app_hash`
-
-The restore playbook validates the local archive checksum and snapshot metadata
-before uploading it or stopping the remote runtime. For shared-network
-operations, source the checksum and metadata from a signed operator snapshot
-manifest or another release-approved publication path. This is not the same as
-a full prepared node-home archive.
-
-### 3. Network Snapshot From the Node Profile
+### 3. Verified Full-Node-Store Snapshot From the Node Profile
 
 Use this when the node profile carries `snapshot_url` and trusted
 `snapshot_signing_keys`:
@@ -286,30 +270,33 @@ Use this when the node profile carries `snapshot_url` and trusted
 ansible-playbook playbooks/restore-network-snapshot.yml
 ```
 
-The playbook validates the profile inputs, stops the runtime, restores the
-signed snapshot inside the node image, and starts the runtime again, one host
-at a time. The expected chain id is `xian_snapshot_expected_chain_id`, or the
-network manifest chain id when that is empty.
+The playbook validates profile inputs, stops the runtime, invokes the canonical
+`xian-abci` full-store verifier inside the node image, and starts the runtime
+only after restore succeeds, one host at a time. The expected chain id is
+`xian_snapshot_expected_chain_id`, or the network manifest chain id when empty.
 
-### 4. Protocol State Sync
+The signed version-2 manifest identifies `snapshot_kind: "full_node_store"`
+and binds chain/genesis, height, application root, block hash, archive checksum
+and compressed/unpacked sizes. Complete `data/` and `xian/` stores and their
+native CometBFT checkpoint/history must pass verification before publication.
+This playbook selects the signed-manifest flow. Legacy v1 manifests, incomplete
+archives and application-only exports are rejected. The lower-level restore
+API also supports an independently trusted archive checksum, subject to the
+same full-store, native-checkpoint, genesis, application-root, history and
+resource checks. A self-declared checksum or an unpinned unsigned archive is
+not a trust anchor; this playbook adds no checksum-only option.
 
-Use this when you want the remote node to bootstrap from trusted peers that
-serve Xian application snapshots through CometBFT state sync.
+Recipient configuration, node/validator keys and signing state remain local.
+Trusting the configured snapshot signer or an independently authenticated
+archive checksum is an explicit trust boundary; this workflow does not
+independently replay all blocks from genesis.
 
-```bash
-ansible-playbook playbooks/bootstrap-state-sync.yml
-```
+### 4. P2P Application State Sync Is Disabled
 
-Required profile settings:
-
-- `advanced.statesync.enabled=true`
-- at least two `advanced.statesync.rpc_servers`
-- `advanced.statesync.trust_height`
-- `advanced.statesync.trust_hash`
-- `advanced.statesync.trust_period`
-
-This path reuses the normal remote deploy role, but it validates the state-sync
-profile settings first and prints a focused summary afterward.
+Xian uses unmodified upstream CometBFT. A profile with
+`advanced.statesync.enabled=true` is rejected, and the old
+`bootstrap-state-sync.yml` entrypoint fails before connecting to a host. Use
+ordinary replay from genesis or the verified full-store workflow above.
 
 ## Log Retention
 
