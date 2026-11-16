@@ -25,5 +25,12 @@ It is not responsible for:
 - generating validator keys
 - defining runtime image contents
 
+Before full-store restore, the `check_stopped_home` taskfile checks the host's
+Docker daemon for writable mounts of the home, its parents, or its subpaths,
+including containers from other Compose projects. A failed Docker query blocks
+restore. The selected image supplies the shared standalone guard; the role
+runs its exact bytes with isolated host Python 3 from a private temporary file
+and always removes that file. The host needs Docker-daemon access for this check.
+
 See the repo root [README.md](../../README.md) for the full deployment flow and
 [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) for repo boundaries.

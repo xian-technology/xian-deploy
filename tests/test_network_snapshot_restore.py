@@ -33,16 +33,18 @@ class RestorePlaybookOrderTest(unittest.TestCase):
     ) -> None:
         play = load_yaml(PLAYBOOK)[0]
         tasks = play["tasks"]
-        stop, restore, start = (
+        stop, guard, restore, start = (
             task_names(tasks).index(name)
             for name in (
                 "Stop runtime before restore",
+                "Verify stopped home before restore",
                 "Restore network snapshot into node home",
                 "Start runtime after restore",
             )
         )
 
-        self.assertLess(stop, restore)
+        self.assertLess(stop, guard)
+        self.assertLess(guard, restore)
         self.assertLess(restore, start)
         self.assertEqual(tasks[stop]["vars"], {"xian_runtime_action": "stop"})
         self.assertEqual(tasks[start]["vars"], {"xian_runtime_action": "deploy"})

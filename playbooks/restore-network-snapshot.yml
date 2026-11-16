@@ -28,6 +28,13 @@
       vars:
         xian_runtime_action: stop
 
+    - name: Verify stopped home before restore
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: check_stopped_home
+      vars:
+        xian_stopped_home_image: "{{ xian_restore_image }}"
+
     - name: Render network snapshot restore script
       ansible.builtin.template:
         src: ../roles/xian_runtime/templates/restore-network-snapshot.py.j2

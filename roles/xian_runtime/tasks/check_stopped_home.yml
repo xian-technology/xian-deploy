@@ -1,0 +1,61 @@
+---
+- name: Create private temporary stopped-home check
+  ansible.builtin.tempfile:
+    state: file
+    prefix: xian-node-store-check-stopped-
+  register: xian_stopped_home_script
+
+- name: Check the node home against all Docker writable mounts
+  block:
+    - name: Restrict stopped-home check permissions
+      ansible.builtin.file:
+        path: "{{ xian_stopped_home_script.path }}"
+        mode: "0700"
+
+    # Redirection preserves the image asset's exact bytes, including newlines.
+    - name: Retrieve selected image stopped-home check
+      ansible.builtin.shell: >-
+        docker run --rm --network none --entrypoint cat
+        {{ xian_stopped_home_image | quote }}
+        /usr/local/bin/xian-node-store-check-stopped
+        > {{ xian_stopped_home_script.path | quote }}
+      changed_when: false
+
+    - name: Run stopped-home check on the Docker host
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -I
+          - "{{ xian_stopped_home_script.path }}"
+          - --home
+          - "{{ xian_cometbft_home }}"
+      register: xian_stopped_home_result
+      changed_when: false
+
+    - name: Resolve the expected home on the Docker host
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -I
+          - -c
+          - "from pathlib import Path; import sys; print(Path(sys.argv[1]).expanduser().resolve())"
+          - "{{ xian_cometbft_home }}"
+      register: xian_stopped_home_canonical
+      changed_when: false
+
+    - name: Decode stopped-home proof
+      ansible.builtin.set_fact:
+        xian_stopped_home_proof: "{{ xian_stopped_home_result.stdout | from_json }}"
+
+    - name: Require a positive stopped-home proof for this home
+      ansible.builtin.assert:
+        that:
+          - xian_stopped_home_proof is mapping
+          - xian_stopped_home_proof.get('runtime_stopped') is sameas true
+          - xian_stopped_home_proof.get('home') == xian_stopped_home_canonical.stdout
+        fail_msg: Cannot verify that this node home has no running writable Docker mounts.
+  always:
+    - name: Remove temporary stopped-home check
+      ansible.builtin.file:
+        path: "{{ xian_stopped_home_script.path }}"
+        state: absent

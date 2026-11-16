@@ -8,9 +8,20 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: xian-deploy
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          path: xian-deploy
+
+      - name: Checkout canonical stopped-home guard source
+        uses: actions/checkout@v7
+        with:
+          repository: xian-technology/xian-stack
+          path: xian-stack
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -19,6 +30,11 @@ jobs:
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v7
+
+      - name: Report canonical guard source
+        run: |
+          git -C ../xian-stack rev-parse HEAD
+          python3 -c "import hashlib,pathlib; p=pathlib.Path('../xian-stack/scripts/node_store_runtime_guard.py'); print(hashlib.sha256(p.read_bytes()).hexdigest(),p)"
 
       - name: Lint playbooks
         run: make lint
