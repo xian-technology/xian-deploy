@@ -1,0 +1,43 @@
+---
+# These are intended-build diagnostics, not attestation of a running binary.
+# The application's private capability/history bootstrap guards enforce safety.
+- name: Resolve intended state-sync release metadata
+  ansible.builtin.set_fact:
+    xian_statesync_release_manifest: >-
+      {{ xian_profile.get('node_release_manifest')
+         if xian_profile.get('node_release_manifest') is not none
+         else xian_network.get('node_release_manifest') }}
+
+- name: Validate history bootstrap release object
+  ansible.builtin.assert:
+    that:
+      - xian_statesync_release_manifest is mapping
+      - xian_statesync_release_manifest.get('schema_version') is integer
+      - xian_statesync_release_manifest.get('schema_version') == 1
+      - xian_statesync_release_manifest.get('build') is mapping
+    fail_msg: State sync requires history-aware intended release metadata with integer schema_version 1 and a build object.
+
+- name: Resolve intended history bootstrap build
+  ansible.builtin.set_fact:
+    xian_statesync_history_build: "{{ xian_statesync_release_manifest.build }}"
+
+- name: Validate intended history bootstrap identity
+  ansible.builtin.assert:
+    that:
+      - xian_statesync_history_build.get('cometbft_version') == '0.40.0'
+      - xian_statesync_history_build.get('cometbft_source_commit') is string
+      - xian_statesync_history_build.get('cometbft_source_commit') is match('^[0-9a-f]{40}\Z')
+      - xian_statesync_history_build.get('cometbft_source_url') == 'https://codeload.github.com/cometbft/cometbft/tar.gz/' ~ xian_statesync_history_build.cometbft_source_commit
+      - xian_statesync_history_build.get('cometbft_source_sha256') is string
+      - xian_statesync_history_build.get('cometbft_source_sha256') is match('^[0-9a-f]{64}\Z')
+      - xian_statesync_history_build.get('cometbft_patch_path') is string
+      - xian_statesync_history_build.get('cometbft_patch_path') is match('^docker/cometbft-patches/[A-Za-z0-9][A-Za-z0-9_.-]*\.patch\Z')
+      - xian_statesync_history_build.get('cometbft_patch_sha256') is string
+      - xian_statesync_history_build.get('cometbft_patch_sha256') is match('^[0-9a-f]{64}\Z')
+      - xian_statesync_history_build.get('cometbft_history_revision') is string
+      - xian_statesync_history_build.get('cometbft_history_revision') == '1'
+    fail_msg: >-
+      State sync requires the intended CometBFT 0.40.0 history revision 1 build,
+      with its lowercase source commit, matching official source URL, source and
+      patch SHA256 values, and repository-relative docker/cometbft-patches/*.patch path.
+      This metadata diagnoses configuration; it does not attest the running binary.

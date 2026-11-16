@@ -96,6 +96,16 @@ That flow assumes:
 Generate node profiles from the matching `xian-configs/templates/` starter and
 set `xian_node_profile` per host as described in `docs/EXAMPLES.md`.
 
+When a profile enables protocol state sync, deployment requires intended
+CometBFT 0.40.0 history revision 1 metadata in its `node_release_manifest`, or
+the network manifest's when no profile override is present. The profile role
+validates the source commit, official source URL and SHA256, repository-relative
+patch path, patch SHA256, and history revision before deploying. The bootstrap
+summary reports this intended build. Metadata diagnoses the configured artifact;
+the application's private capability handshake and verified historical
+bootstrap enforce safety. Profiles using ordinary replay keep their existing
+artifact requirements.
+
 ## Validation
 
 ```bash

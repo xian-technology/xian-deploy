@@ -333,6 +333,10 @@
         else {}
       }}
 
+- name: Validate the intended history-aware state-sync artifact
+  ansible.builtin.include_tasks: history_bootstrap.yml
+  when: xian_statesync_enable | bool
+
 # Same precedence as `xian node init`: the profile genesis overrides the
 # manifest genesis, and chain_id/runtime_features belong to the manifest.
 - name: Resolve effective genesis inputs

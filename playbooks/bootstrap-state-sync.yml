@@ -47,6 +47,8 @@
           trust_height: "{{ xian_statesync_trust_height }}"
           trust_hash: "{{ xian_statesync_trust_hash }}"
           trust_period: "{{ xian_statesync_trust_period }}"
+          intended_history_build: "{{ xian_statesync_history_build }}"
+          intended_history_build_metadata_only: true
           rpc_reachable: "{{ not (xian_statesync_rpc.failed | default(false)) }}"
           rpc_height: "{{ xian_statesync_rpc.json.result.sync_info.latest_block_height | default(None) if not (xian_statesync_rpc.failed | default(false)) else None }}"
           rpc_catching_up: "{{ xian_statesync_rpc.json.result.sync_info.catching_up | default(None) if not (xian_statesync_rpc.failed | default(false)) else None }}"
