@@ -28,7 +28,9 @@ def task_names(tasks: list[dict]) -> list[str]:
 
 @requires_ansible
 class RestorePlaybookOrderTest(unittest.TestCase):
-    def test_restore_stops_the_runtime_before_restoring_and_starts_it_after(self) -> None:
+    def test_restore_stops_the_runtime_before_restoring_and_starts_it_after(
+        self,
+    ) -> None:
         play = load_yaml(PLAYBOOK)[0]
         tasks = play["tasks"]
         stop, restore, start = (
@@ -62,7 +64,12 @@ class RestoreScriptTest(PlaybookTestCase):
                         "tasks_from": "network_snapshot",
                     }
                 },
-                {"ansible.builtin.template": {"src": str(TEMPLATE), "dest": str(script)}},
+                {
+                    "ansible.builtin.template": {
+                        "src": str(TEMPLATE),
+                        "dest": str(script),
+                    }
+                },
             ],
         )
         return result, script
@@ -83,12 +90,15 @@ class RestoreScriptTest(PlaybookTestCase):
             env={**os.environ, "PYTHONPATH": str(self.workdir / "fake")},
             capture_output=True,
             text=True,
-            check=True,
+            check=False,
         )
+        self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         return json.loads(completed.stdout.splitlines()[0])
 
     def test_restore_uses_the_profile_snapshot_and_trusted_keys(self) -> None:
-        profile = canonical_profile(snapshot_url=SNAPSHOT_URL, snapshot_signing_keys=["c" * 64])
+        profile = canonical_profile(
+            snapshot_url=SNAPSHOT_URL, snapshot_signing_keys=["c" * 64]
+        )
         result, script = self.render(profile, xian_chain_id="local-dev-1")
 
         self.assertPlaySucceeded(result)
@@ -106,6 +116,17 @@ class RestoreScriptTest(PlaybookTestCase):
         result, _ = self.render(canonical_profile(snapshot_signing_keys=["c" * 64]))
 
         self.assertPlayFailed(result, "snapshot_url")
+
+    def test_restore_can_bind_recipient_genesis_without_an_optional_chain_pin(
+        self,
+    ) -> None:
+        profile = canonical_profile(
+            snapshot_url=SNAPSHOT_URL, snapshot_signing_keys=["c" * 64]
+        )
+        result, script = self.render(profile)
+
+        self.assertPlaySucceeded(result)
+        self.assertIsNone(self.restore_call(script)["expected_chain_id"])
 
     def test_restore_requires_trusted_signing_keys(self) -> None:
         result, _ = self.render(canonical_profile(snapshot_url=SNAPSHOT_URL))
