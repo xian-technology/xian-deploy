@@ -1,0 +1,77 @@
+---
+# CometBFT's double-sign protection is data/priv_validator_state.json. A prepared
+# archive carries a fresh one (height 0). First verify this is actually the
+# configured local signing state, rather than an unused stale default file.
+- name: Inspect the existing node home
+  ansible.builtin.stat:
+    path: "{{ xian_cometbft_home }}"
+  register: xian_node_home_existing_home
+
+- name: Inspect the existing validator signing configuration
+  ansible.builtin.stat:
+    path: "{{ xian_cometbft_home }}/config/config.toml"
+  register: xian_node_home_existing_config_path
+
+- name: Require a verifiable signing configuration for an existing home
+  ansible.builtin.assert:
+    that:
+      - not xian_node_home_existing_home.stat.exists or (xian_node_home_existing_config_path.stat.isreg | default(false))
+    fail_msg: "cannot verify validator signing configuration; preserve the existing home and recover its config.toml before using push-home"
+
+- name: Read the existing validator signing configuration
+  ansible.builtin.slurp:
+    src: "{{ xian_cometbft_home }}/config/config.toml"
+  register: xian_node_home_existing_config
+  when: xian_node_home_existing_home.stat.exists
+
+- name: Require the verifiable default local signing state
+  ansible.builtin.assert:
+    that:
+      - xian_node_home_existing_config.content | b64decode | uses_default_local_signing_state
+    fail_msg: "cannot verify validator signing configuration; push-home preserves homes with custom signing-state paths or external signers"
+  when: xian_node_home_existing_home.stat.exists
+
+- name: Inspect the existing validator signing state
+  ansible.builtin.stat:
+    path: "{{ xian_cometbft_home }}/data/priv_validator_state.json"
+  register: xian_node_home_existing_state_path
+
+- name: Require a verifiable signing state for an existing home
+  ansible.builtin.assert:
+    that:
+      - not xian_node_home_existing_home.stat.exists or (xian_node_home_existing_state_path.stat.isreg | default(false))
+    fail_msg: "cannot verify validator signing state; preserve the existing home and recover its signing state before using push-home"
+
+- name: Read the existing validator signing state
+  ansible.builtin.slurp:
+    src: "{{ xian_cometbft_home }}/data/priv_validator_state.json"
+  register: xian_node_home_existing_state
+  when: xian_node_home_existing_home.stat.exists
+
+- name: Validate the existing validator signing height
+  vars:
+    xian_node_home_signing_state: >-
+      {{ (xian_node_home_existing_state.content | b64decode | from_json)
+         if 'content' in xian_node_home_existing_state else {'height': '0'} }}
+  ansible.builtin.assert:
+    that:
+      - xian_node_home_signing_state is mapping
+      - xian_node_home_signing_state.height is string
+      - xian_node_home_signing_state.height is match('^[0-9]+$')
+    fail_msg: "cannot verify validator signing state; height must be a non-negative decimal string"
+
+- name: Refuse to reset a validator's signing state
+  vars:
+    xian_node_home_signed_height: >-
+      {{ (xian_node_home_existing_state.content | b64decode | from_json).height | int
+         if 'content' in xian_node_home_existing_state else 0 }}
+  ansible.builtin.assert:
+    that:
+      - xian_node_home_signed_height | int == 0
+    fail_msg: >-
+      {{ xian_cometbft_home }} has signed up to height {{ xian_node_home_signed_height }}.
+      push-home places a prepared home on a fresh host and would reset that
+      signing state. Restore this node with restore-state-snapshot.yml or
+      restore-network-snapshot.yml, which keep its keys and signing state; to
+      retire the home deliberately, stop the runtime and move it away first.
+

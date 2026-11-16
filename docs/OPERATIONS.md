@@ -239,8 +239,17 @@ It is for a host whose node home has not signed yet. A prepared archive
 carries a fresh `data/priv_validator_state.json`, so `push-home.yml` refuses a
 home whose signing state is above height 0 (with either
 `xian_node_home_replace` value) instead of letting the validator sign those
-heights again. Recover such a node with paths 2 or 3, which keep its keys and
-signing state.
+heights again. An existing home with missing, unreadable, or malformed signing
+state is also refused: an unknown signing height is not a fresh validator.
+The role verifies `config/config.toml` before trusting that state file. Missing
+or invalid configuration, custom signing-state paths, and external signers
+are refused because a default height-zero file does not prove their signing
+history is empty. Preserve those homes and use a recovery workflow instead.
+Recover such a node with paths 2 or 3, which keep its keys and signing state.
+If a managed runtime exists, the role stops it and rechecks signing state
+before replacing the home, so signing progress made during shutdown cannot be
+erased. Processes started outside the managed Compose runtime must be stopped
+before this workflow.
 
 ### 2. Application State Snapshot Import
 

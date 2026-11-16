@@ -6,29 +6,25 @@
       - xian_node_home_archive | length > 0
     fail_msg: xian_node_home_archive must point to a local tar or tar.gz archive
 
-# CometBFT's double-sign protection is data/priv_validator_state.json. A prepared
-# archive carries a fresh one (height 0), so pushing it over a home that has
-# signed would let the validator sign those heights again.
-- name: Read the existing validator signing state
-  ansible.builtin.slurp:
-    src: "{{ xian_cometbft_home }}/data/priv_validator_state.json"
-  register: xian_node_home_existing_state
-  failed_when: false
+- name: Check validator signing state before touching the home
+  ansible.builtin.import_tasks: check_signing_state.yml
 
-- name: Refuse to reset a validator's signing state
+- name: Inspect the managed runtime configuration
+  ansible.builtin.stat:
+    path: "{{ xian_runtime_dir }}/docker-compose.yml"
+  register: xian_node_home_runtime_config
+
+- name: Stop a managed runtime before replacing its home
+  ansible.builtin.include_role:
+    name: xian_runtime
   vars:
-    xian_node_home_signed_height: >-
-      {{ (xian_node_home_existing_state.content | b64decode | from_json).height | int
-         if 'content' in xian_node_home_existing_state else 0 }}
-  ansible.builtin.assert:
-    that:
-      - xian_node_home_signed_height | int == 0
-    fail_msg: >-
-      {{ xian_cometbft_home }} has signed up to height {{ xian_node_home_signed_height }}.
-      push-home places a prepared home on a fresh host and would reset that
-      signing state. Restore this node with restore-state-snapshot.yml or
-      restore-network-snapshot.yml, which keep its keys and signing state; to
-      retire the home deliberately, stop the runtime and move it away first.
+    xian_runtime_action: stop
+  when: xian_node_home_runtime_config.stat.exists
+
+# A height-zero validator may have signed while the stop command was running.
+- name: Recheck signing state after the managed runtime stopped
+  ansible.builtin.import_tasks: check_signing_state.yml
+  when: xian_node_home_runtime_config.stat.exists
 
 - name: Remove existing node home
   ansible.builtin.file:
