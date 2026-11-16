@@ -6,6 +6,7 @@ tests need ansible-core and Docker (`make validate`).
 
 from __future__ import annotations
 
+import os
 import subprocess
 import unittest
 from pathlib import Path
@@ -58,6 +59,9 @@ class MonitoringTemplatesTest(PlaybookTestCase):
         image = load_yaml(INVENTORY)["xian_prometheus_image"]
         result = subprocess.run(
             ["docker", "run", "--rm", "--network", "none", "--entrypoint", "promtool"]
+            # The workdir is a private temporary directory: read it as its owner
+            # (the image's default user cannot enter it on a Linux host).
+            + ["--user", f"{os.getuid()}:{os.getgid()}"]
             + ["-v", f"{self.workdir}:/xian-prometheus:ro", "-w", "/xian-prometheus"]
             + [image, *args],
             capture_output=True,
