@@ -1,6 +1,6 @@
 # promtool unit tests for prometheus.rules.yml.j2 rendered for shared_network.
 # Run: uvx --from ansible-core python tests/check_monitoring_rules.py (make validate).
-# Series names and labels are the ones CometBFT v0.39 and node-exporter
+# Series names and labels are the ones CometBFT v0.40.0 and node-exporter
 # export; job/instance match roles/xian_runtime/templates/prometheus.yml.j2.
 rule_files:
   - rules.yml
