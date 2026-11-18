@@ -262,9 +262,7 @@ before this workflow.
 
 `xian-state-snapshot` export/import operates on application data only. It does
 not contain CometBFT's complete consensus, block and evidence stores and cannot
-bootstrap a node. `restore-state-snapshot.yml` refuses an import followed by
-automatic redeployment and directs operators to replay or the full-store flow.
-Use the offline APIs separately for analysis/service workflows.
+bootstrap a node. Use these APIs for offline analysis and service workflows.
 `scripts/validate_state_snapshot_archive.py` checks this offline format only;
 it does not verify a bootable full-node store.
 
@@ -286,8 +284,8 @@ The signed version-2 manifest identifies `snapshot_kind: "full_node_store"`
 and binds chain/genesis, height, application root, block hash, archive checksum
 and compressed/unpacked sizes. Complete `data/` and `xian/` stores and their
 native CometBFT checkpoint/history must pass verification before publication.
-This playbook selects the signed-manifest flow. Legacy v1 manifests, incomplete
-archives and application-only exports are rejected. The lower-level restore
+This playbook selects the signed-manifest flow and requires a complete
+full-node-store archive. The lower-level restore
 API also supports an independently trusted archive checksum, subject to the
 same full-store, native-checkpoint, genesis, application-root, history and
 resource checks. A self-declared checksum or an unpinned unsigned archive is
@@ -301,8 +299,7 @@ independently replay all blocks from genesis.
 ### 4. P2P Application State Sync Is Disabled
 
 Xian uses unmodified upstream CometBFT. A profile with
-`advanced.statesync.enabled=true` is rejected, and the old
-`bootstrap-state-sync.yml` entrypoint fails before connecting to a host. Use
+`advanced.statesync.enabled=true` is rejected. Use
 ordinary replay from genesis or the verified full-store workflow above.
 
 ## Log Retention

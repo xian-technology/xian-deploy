@@ -10,8 +10,6 @@
 - `health.yml`: remote runtime, BDS, disabled P2P state-sync, and disk checks
 - `upgrade.yml`: serial rollout
 - `restore-network-snapshot.yml`: verify and restore a signed full-node store
-- `bootstrap-state-sync.yml`: refuse unsupported P2P application state sync
-- `restore-state-snapshot.yml`: refuse app-only node bootstrap/redeployment
 - `smoke.yml`: basic post-deploy health check
 
 ## Typical Flow

@@ -160,14 +160,6 @@ class BootstrapPolicyTest(PlaybookTestCase):
         )
         self.assertPlaySucceeded(result)
 
-    def test_obsolete_bootstrap_playbooks_refuse_before_connecting_or_deploying(self):
-        for name in ("bootstrap-state-sync.yml", "restore-state-snapshot.yml"):
-            with self.subTest(playbook=name):
-                completed = self.entrypoint(name)
-                self.assertPlayFailed(completed, "full-node-store")
-                self.assertNotIn("Gathering Facts", completed.stdout)
-                self.assertNotIn("docker run", completed.stdout)
-
 
 if __name__ == "__main__":
     import unittest

@@ -46,7 +46,7 @@
       - "xian_profile.get('block_policy_mode') in ['on_demand', 'idle_interval', 'periodic']"
       - "xian_profile.get('operator_profile') in ['local_development', 'indexed_development', 'shared_network']"
     fail_msg: >-
-      Remote deployment now uses node profiles directly. Provide a schema v1
+      Remote deployment uses node profiles directly. Provide a schema v1
       profile generated with node_image_mode=registry and complete
       services/advanced runtime sections.
 
@@ -58,17 +58,6 @@
       The node profile must not set tx_fee_mode, max_tx_chi or max_block_chi:
       the fee policy is chain state chosen at genesis. Set fee_policy in the
       network manifest instead.
-
-- name: Reject removed parallel execution settings
-  ansible.builtin.assert:
-    that:
-      - (xian_profile.keys() | list | intersect(['parallel_execution_enabled', 'parallel_execution_workers', 'parallel_execution_min_transactions']) | length) == 0
-      - "'parallel_execution' not in (xian_profile.get('advanced') | default({}, true))"
-    fail_msg: >-
-      The node profile must not set parallel_execution_enabled,
-      parallel_execution_workers, parallel_execution_min_transactions or
-      advanced.parallel_execution: the speculative parallel executor was removed
-      and blocks always execute serially. Remove these keys.
 
 - name: Extract node profile sections
   ansible.builtin.set_fact:

@@ -19,10 +19,8 @@ validate:
 	$(ANSIBLE) --syntax-check playbooks/deploy.yml
 	$(ANSIBLE) --syntax-check playbooks/health.yml
 	$(ANSIBLE) --syntax-check playbooks/status.yml
-	$(ANSIBLE) --syntax-check playbooks/bootstrap-state-sync.yml
 	$(ANSIBLE) --syntax-check playbooks/restart.yml
 	$(ANSIBLE) --syntax-check playbooks/stop.yml
 	$(ANSIBLE) --syntax-check playbooks/upgrade.yml
-	$(ANSIBLE) --syntax-check playbooks/restore-state-snapshot.yml
 	$(ANSIBLE) --syntax-check playbooks/restore-network-snapshot.yml
 	$(ANSIBLE) --syntax-check playbooks/smoke.yml

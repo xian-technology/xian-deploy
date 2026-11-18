@@ -53,8 +53,7 @@ That flow assumes:
   unless a private inventory deliberately overrides them. Inventory should not
   duplicate profile runtime settings.
 - **Composable flows.** Bootstrap, deploy, upgrade, health, restart, smoke,
-  and full-store snapshot recovery are separate playbooks. Retired P2P state
-  sync and app-only bootstrap entrypoints explain the supported alternatives.
+  and full-store snapshot recovery are separate playbooks.
 - **Optional layers stay optional.** Dashboard, BDS, and monitoring layer on
   top of the core node runtime; nothing in this repo forces them on.
 - **Node-home preparation is elsewhere.** `xian-cli` owns generating and
@@ -64,8 +63,7 @@ That flow assumes:
 
 - `playbooks/` — operator entrypoints: `bootstrap.yml`, `push-home.yml`,
   `deploy.yml`, `upgrade.yml`, `health.yml`, `smoke.yml`, `status.yml`,
-  `restart.yml`, `stop.yml`, `bootstrap-state-sync.yml`,
-  `restore-state-snapshot.yml`, `restore-network-snapshot.yml`.
+  `restart.yml`, `stop.yml`, `restore-network-snapshot.yml`.
 - `roles/` — reusable deployment roles:
   - `host_hardening/` — conservative host hardening baseline and opt-in SSH/firewall controls.
   - `docker_host/` — Docker bootstrap and base runtime packages.
@@ -89,16 +87,13 @@ That flow assumes:
 | `playbooks/status.yml`            | inspect remote runtime status                              |
 | `playbooks/health.yml`            | run remote health checks                                   |
 | `playbooks/smoke.yml`             | run remote smoke tests                                     |
-| `playbooks/bootstrap-state-sync.yml` | unsupported; explains replay/full-store alternatives       |
-| `playbooks/restore-state-snapshot.yml` | unsupported as node bootstrap; offline API only |
 | `playbooks/restore-network-snapshot.yml` | stop, restore the profile's signed snapshot, start |
 
 Generate node profiles from the matching `xian-configs/templates/` starter and
 set `xian_node_profile` per host as described in `docs/EXAMPLES.md`.
 
 Xian uses unmodified upstream CometBFT. Profiles with P2P application state
-sync enabled are rejected before deployment. `bootstrap-state-sync.yml` also
-fails before connecting to a host. Use ordinary replay or
+sync enabled are rejected before deployment. Use ordinary replay or
 `restore-network-snapshot.yml` with a verified full-node-store snapshot.
 
 Full-store restore consumes the profile's `snapshot_url` and trusted
@@ -106,8 +101,7 @@ Full-store restore consumes the profile's `snapshot_url` and trusted
 application-root, checkpoint and complete-store verification to `xian-abci`.
 Recipient keys and signing state are preserved. Snapshot trust rests on the
 configured signer; it does not independently replay every block. App-only
-SnapshotManager exports remain offline APIs; `restore-state-snapshot.yml`
-rejects their use as automated node bootstrap/redeployment.
+snapshot exports are offline APIs for analysis.
 
 ## Validation
 
