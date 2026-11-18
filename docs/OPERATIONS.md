@@ -125,7 +125,14 @@ images for each enabled service:
 - `xian_prometheus_image`, `xian_grafana_image`, and `xian_node_exporter_image`
   when monitoring is enabled
 
-Use image references such as `postgres:17.10@sha256:<digest>` or
+PostgreSQL defaults to 18.7. Its persistent directory mounts at
+`/var/lib/postgresql`, with cluster data under `18/docker`. A PostgreSQL 17
+directory requires a logical dump/restore into a fresh directory before this
+deployment can start; retain the original directory for rollback. Follow the
+[database migration procedure](../../xian-docs-web/node/configuration.md#postgresql-version-and-storage)
+before running an upgrade against an existing BDS database.
+
+Use image references such as `postgres:18.7@sha256:<digest>` or
 `prom/prometheus:v3.12.0@sha256:<digest>`. Local-development and example
 inventories may keep tag-only defaults. Private inventories can require the
 same strict behavior outside shared-network profiles by setting

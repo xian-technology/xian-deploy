@@ -42,6 +42,7 @@ class BdsSecretTest(PlaybookTestCase):
             variables={
                 **inventory,
                 "xian_bds_password": PASSWORD,
+                "xian_bds_data_dir": str(self.workdir / "postgres"),
                 "xian_deploy_topology": topology,
             },
             tasks=[
@@ -71,6 +72,10 @@ class BdsSecretTest(PlaybookTestCase):
                 self.assertEqual(services[node_service]["secrets"], ["xian_bds_password"])
                 self.assertNotIn("env_file", services[node_service])
                 self.assertEqual(services["postgres"]["secrets"], ["xian_bds_password"])
+                self.assertEqual(
+                    services["postgres"]["volumes"],
+                    [f"{self.workdir}/postgres:/var/lib/postgresql"],
+                )
                 self.assertEqual(
                     services["postgres"]["environment"]["POSTGRES_PASSWORD_FILE"], SECRET_PATH
                 )

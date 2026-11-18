@@ -214,7 +214,7 @@ services:
       timeout: 5s
       retries: 12
     volumes:
-      - {{ (xian_bds_data_dir ~ ':/var/lib/postgresql/data') | to_json }}
+      - {{ (xian_bds_data_dir ~ ':/var/lib/postgresql') | to_json }}
     secrets:
       - xian_bds_password
     networks:
