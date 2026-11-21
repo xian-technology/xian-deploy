@@ -5,8 +5,8 @@
   remote hosts.
 
 ## Files
-- `single-node-indexed-hosts.yml`: one BDS-backed node on one host.
-- `consortium-5-hosts.yml`: five validator profiles on five hosts.
+- `validator-hosts.yml`: one validator profile (generated from the `validator`
+  template) on one host. Add one host entry per further validator.
 
 ## Notes
 - These are only structure references.

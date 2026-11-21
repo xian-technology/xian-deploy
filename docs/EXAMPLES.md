@@ -12,10 +12,8 @@ limits, and `xian_deploy_topology`.
 
 Use the layouts under `inventories/example/examples/` as starting points:
 
-- `single-node-indexed-hosts.yml`: one generated `single-node-indexed` profile
-  deployed to one host.
-- `consortium-5-hosts.yml`: five generated `consortium-5` validator profiles
-  deployed to five hosts.
+- `validator-hosts.yml`: one profile generated from the `validator` template
+  deployed to one host; add one host entry per further validator.
 
 Keep real inventories, host vars, and secrets in a private deployment repo.
 

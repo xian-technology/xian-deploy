@@ -65,14 +65,14 @@ class BundleGenesisTest(PlaybookTestCase):
 
     def test_profile_bundle_genesis_overrides_the_manifest_like_node_init(self) -> None:
         profile = canonical_profile(
-            genesis={"kind": "bundle", "bundle": "testnet", "genesis_time": "2026-03-30T00:00:00Z"}
+            genesis={"kind": "bundle", "bundle": "mainnet", "genesis_time": "2026-03-30T00:00:00Z"}
         )
         result, arguments = render_configure_wrapper(
             self.workdir, profile=profile, manifest=bundle_manifest()
         )
 
         self.assertPlaySucceeded(result)
-        self.assertEqual(option_values(arguments, "--genesis-bundle"), ["testnet"])
+        self.assertEqual(option_values(arguments, "--genesis-bundle"), ["mainnet"])
         self.assertEqual(option_values(arguments, "--genesis-time"), ["2026-03-30T00:00:00Z"])
 
     def test_bundle_genesis_without_fixed_time_is_rejected(self) -> None:
