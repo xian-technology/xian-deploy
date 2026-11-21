@@ -2,8 +2,8 @@
 - name: Show Xian runtime status
   hosts: xian_nodes
   become: true
+  vars:
+    xian_runtime_action: status
   roles:
     - xian_profile
-    - role: xian_runtime
-      vars:
-        xian_runtime_action: status
+    - xian_runtime

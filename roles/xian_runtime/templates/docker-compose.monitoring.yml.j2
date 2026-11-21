@@ -16,16 +16,19 @@ services:
   prometheus:
     logging: *x-logging
     image: {{ xian_prometheus_image | to_json }}
-    restart: always
+    restart: unless-stopped
     hostname: {{ xian_project_name }}-prometheus
+    # Recreate Prometheus when its mounted content changes.
+    labels:
+      io.xian.monitoring.bundle-sha256: {{ (xian_monitoring_bundle_sha256 | lower) | to_json }}
+      io.xian.monitoring.config-sha1: {{ xian_rendered_prometheus_config.checksum | to_json }}
     command:
       [
         "--config.file=/etc/prometheus/prometheus.yml",
         "--storage.tsdb.path=/prometheus"
       ]
     volumes:
-      - {{ (xian_prometheus_config_path ~ ':/etc/prometheus/prometheus.yml:ro') | to_json }}
-      - {{ (xian_prometheus_rules_path ~ ':/etc/prometheus/rules.yml:ro') | to_json }}
+      - {{ (xian_monitoring_dir ~ '/prometheus:/etc/prometheus:ro') | to_json }}
     networks:
       - xian-net
     ports:
@@ -40,7 +43,7 @@ services:
   node-exporter:
     logging: *x-logging
     image: {{ xian_node_exporter_image | to_json }}
-    restart: always
+    restart: unless-stopped
     hostname: {{ xian_project_name }}-node-exporter
     command: ["--path.rootfs=/host"]
     volumes:
@@ -51,8 +54,10 @@ services:
   grafana:
     logging: *x-logging
     image: {{ xian_grafana_image | to_json }}
-    restart: always
+    restart: unless-stopped
     hostname: {{ xian_project_name }}-grafana
+    labels:
+      io.xian.monitoring.bundle-sha256: {{ (xian_monitoring_bundle_sha256 | lower) | to_json }}
     depends_on:
       prometheus:
         condition: service_started

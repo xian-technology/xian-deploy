@@ -32,6 +32,15 @@ class RestorePlaybookOrderTest(unittest.TestCase):
         self,
     ) -> None:
         play = load_yaml(PLAYBOOK)[0]
+        validate_home = next(
+            task for task in play["pre_tasks"]
+            if task["name"] == "Verify the prepared node home before stopping for restore"
+        )
+        self.assertEqual(
+            validate_home["ansible.builtin.include_role"],
+            {"name": "xian_runtime", "tasks_from": "check_node_home"},
+        )
+        self.assertIs(validate_home["vars"]["xian_check_genesis"], True)
         tasks = play["tasks"]
         stop, guard, restore, start = (
             task_names(tasks).index(name)

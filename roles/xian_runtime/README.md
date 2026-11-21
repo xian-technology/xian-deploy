@@ -7,6 +7,8 @@ It is responsible for:
 - materializing the node's Compose stack on the host
 - applying the runtime facts derived from the canonical node profile
 - starting and updating the released containers
+- verifying and installing the pinned Stack monitoring bundle for enabled
+  profiles, then applying target bindings and alert policy
 - exposing the same node-local runtime settings that `xian-configure-node`
   writes, including logging, simulation, pending nonce, BDS, metrics, and state
   sync controls

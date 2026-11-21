@@ -25,14 +25,14 @@ and runs the role checks in `tests/` with ansible-core on localhost: rendered
 configure arguments, genesis and RPC exposure validation, the upgrade health
 gate against a local fake RPC, and the network snapshot restore script.
 
-`tests/test_genesis_parity.py` additionally proves that deploy and
-`xian node init` build byte-identical bundle genesis. It is opt-in because it
-needs xian-abci; it starts no node:
+`tests/test_prepared_genesis_integration.py` runs the real configure command
+against a CLI-prepared home and checks that genesis, keys and signing state
+stay byte-identical. The test uses the sibling CLI environment and starts no node.
 
 ```bash
-cd tests && XIAN_DEPLOY_PARITY_PYTHON=../../xian-cli/.venv/bin/python \
-  XIAN_DEPLOY_PARITY_CONFIGS=../../xian-configs \
-  uvx --from ansible-core python -m unittest test_genesis_parity
+XIAN_DEPLOY_INTEGRATION_PYTHON=../xian-cli/.venv/bin/python \
+  XIAN_DEPLOY_INTEGRATION_CONFIGS=../xian-configs \
+  uvx --from ansible-core python -m unittest discover -s tests -p test_prepared_genesis_integration.py
 ```
 
 ## Host Bootstrap Hardening
@@ -66,7 +66,7 @@ the effective exposure from outside the host after enabling UFW.
 
 `deploy.yml` rewrites the node configuration and runs `docker compose up -d`.
 Compose recreates containers only when the image or Compose definition
-changes, so a profile-only change (peers, state sync, logging, block policy)
+changes, so a profile-only change (peers, logging, block policy)
 reaches the node only after `playbooks/restart.yml`.
 
 Deploy-time configuration never restores a snapshot, even when the node profile
@@ -79,19 +79,12 @@ stopping the rollout, when that does not happen within
 `xian_upgrade_health_poll_seconds`). Override `xian_upgrade_rpc_status_url` when
 RPC is not reachable on `127.0.0.1:{{ xian_rpc_port }}` from the host.
 
-When deploy builds a bundle genesis (the node profile genesis is a bundle, or
-the profile has none and the network manifest's genesis is a bundle), set
-`xian_network_manifest` to the manifest used by `xian node init`. Deploy takes
-`chain_id`, `genesis_time`, `runtime_features` and `fee_policy` from it, with the same
-profile-over-manifest precedence as `xian node init`, and rejects a bundle
-genesis without a fixed `genesis_time`. A manifest `source` genesis is not
-copied; the pushed node home already contains it.
-
-When the manifest pins `genesis_sha256`, deploy passes it to
-`xian-configure-node --genesis-sha256`, which checks the genesis the home will
-run (the rebuilt bundle, the copied profile source, or the pushed home's
-genesis) and fails the deploy before writing anything when it hashes
-differently.
+Deploy and rolling upgrades require the installed `config/genesis.json` from
+the CLI-prepared node home. Set `xian_network_manifest` to the same manifest
+used by `xian node init` to verify the chain ID and any `genesis_sha256` pin
+against the exact installed file bytes. Genesis validation runs before
+configuration. Snapshot restore also checks the installed genesis before it
+stops the node.
 
 ## Remote Health
 
@@ -110,7 +103,7 @@ What it checks:
 - Xian metrics
 - optional dashboard / Prometheus / Grafana reachability
 - BDS queue, spool, lag, and database state when BDS is enabled
-- rendered state-sync readiness from the remote `config.toml`
+- validation of the installed CometBFT configuration
 - deploy-root and BDS-spool disk pressure
 
 Use `playbooks/smoke.yml` for a lighter post-deploy sanity check. Use
@@ -140,7 +133,27 @@ same strict behavior outside shared-network profiles by setting
 
 ## Monitoring And Alerts
 
-When monitoring is enabled, the runtime now stages:
+When the profile enables monitoring, choose a versioned `xian-stack` release
+that publishes `xian-monitoring.tar` and `xian-monitoring.tar.sha256`. Verify
+the archive and checksum against their accompanying `.sigstore.json` bundles
+using the [Stack release verification procedure](https://github.com/xian-technology/xian-stack/blob/main/docs/RELEASES.md).
+Pin the release asset URL and the 64-character hex checksum in inventory.
+
+```yaml
+xian_monitoring_bundle_source: "https://github.com/xian-technology/xian-stack/releases/download/<tag>/xian-monitoring.tar"
+xian_monitoring_bundle_sha256: "<verified SHA-256 of xian-monitoring.tar>"
+```
+
+An absolute archive path on the Ansible controller also works. For an offline
+or prerelease rehearsal, run `python3 scripts/package_monitoring.py
+/absolute/output-directory` from a trusted `xian-stack` checkout and use its
+archive and checksum. The playbooks verify the pin before installing the
+assets on the host. The node image and monitoring bundle have independent
+pins, so a node can keep its existing image when compatible monitoring assets
+change. To update monitoring, replace both inventory inputs and run `deploy`
+or `upgrade`.
+
+The runtime stages the selected assets on the host.
 
 - Prometheus with the alert rules for the profile, and node-exporter for host
   disk metrics (read-only host root, no published port, scraped as job
@@ -166,9 +179,10 @@ info, app block-progress, and BDS alerts (development profiles get none):
 CometBFT exports the two validator series only for the node's own key, so the
 validator alerts stay silent on non-validators. After a validator leaves the
 set on purpose, restart the node to drop its stale last-signed series.
-`tests/test_monitoring_rules.py` renders the rules for real profiles and runs
-the promtool unit tests in `tests/monitoring/`; extend them with every rule
-change.
+The Stack tests cover alert evaluation with `promtool`. Deployment tests
+exercise bundle verification and load the rules for each profile. Deploying a
+profile with monitoring disabled stops the monitoring containers and keeps
+their data mounts for re-enabling the services. It needs no bundle pin.
 
 ### Delivering Alerts
 
@@ -242,6 +256,8 @@ ansible-playbook playbooks/deploy.yml
 ```
 
 This is the closest remote equivalent to a local `xian-cli` node-home restore.
+The upload playbook validates the staged home's genesis and any manifest pin
+before stopping a managed runtime or changing its home.
 It is for a host whose node home has not signed yet. A prepared archive
 carries a fresh `data/priv_validator_state.json`, so `push-home.yml` refuses a
 home whose signing state is above height 0 (with either
@@ -296,11 +312,17 @@ Trusting the configured snapshot signer or an independently authenticated
 archive checksum is an explicit trust boundary; this workflow does not
 independently replay all blocks from genesis.
 
-### 4. P2P Application State Sync Is Disabled
+### 4. CometBFT Configuration
 
-Xian uses unmodified upstream CometBFT. A profile with
-`advanced.statesync.enabled=true` is rejected. Use
-ordinary replay from genesis or the verified full-store workflow above.
+Xian uses unmodified upstream CometBFT. Keep `[statesync].enable` set to `false`
+in `config.toml`. Deploy, restart, snapshot restore and health validate the
+installed configuration. Bootstrap through ordinary replay from genesis or use
+the verified full-store workflow above.
+
+Existing profiles can omit `advanced.statesync` or include a legacy object
+with `enabled` absent or set to `false`. If the object is enabled or malformed,
+use `stop.yml` and `status.yml` to operate on the existing runtime while you
+correct the profile.
 
 ## Log Retention
 

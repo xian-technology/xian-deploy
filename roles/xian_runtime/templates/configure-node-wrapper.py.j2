@@ -22,7 +22,6 @@ add("--p2p-external-address", {{ xian_p2p_external_address | string | to_json }}
 add({{ ('--prometheus' if xian_cometbft_prometheus_enabled else '--no-prometheus') | to_json }})
 add({{ ('--bds-enabled' if xian_bds_enabled else '--no-bds-enabled') | to_json }})
 add({{ ('--enable-pruning' if xian_pruning_enabled else '--no-enable-pruning') | to_json }})
-add({{ ('--statesync-enable' if xian_statesync_enable else '--no-statesync-enable') | to_json }})
 add({{ ('--metrics-enabled' if xian_metrics_enabled else '--no-metrics-enabled') | to_json }})
 add({{ ('--transaction-trace-logging' if xian_transaction_trace_logging else '--no-transaction-trace-logging') | to_json }})
 add({{ ('--app-log-json' if xian_app_log_json else '--no-app-log-json') | to_json }})
@@ -63,21 +62,6 @@ add("--bds-spool-dir", {{ (xian_bds_spool_dir if xian_bds_enabled else '') | to_
 add("--bds-spool-warn-entries", {{ xian_bds_spool_warn_entries | to_json }})
 add("--bds-spool-warn-bytes", {{ xian_bds_spool_warn_bytes | to_json }})
 add("--bds-disk-free-warn-bytes", {{ xian_bds_disk_free_warn_bytes | to_json }})
-{% if xian_genesis_source | length > 0 %}
-add("--genesis-source", {{ xian_genesis_source | to_json }})
-{% endif %}
-{% if xian_genesis_sha256 | length > 0 %}
-add("--genesis-sha256", {{ xian_genesis_sha256 | to_json }})
-{% endif %}
-{% if xian_genesis_bundle | length > 0 %}
-add("--genesis-bundle", {{ xian_genesis_bundle | to_json }})
-add("--chain-id", {{ xian_effective_chain_id | to_json }})
-add("--genesis-time", {{ xian_genesis_time | to_json }})
-add({{ ('--runtime-feature-zk' if (xian_runtime_features.get('zk', false) | bool) else '--no-runtime-feature-zk') | to_json }})
-{% for field in ['tx_fee_mode', 'max_tx_chi', 'max_block_chi'] if field in xian_fee_policy %}
-add({{ ('--' ~ (field | replace('_', '-'))) | to_json }}, {{ xian_fee_policy[field] | to_json }})
-{% endfor %}
-{% endif %}
 {% for seed in xian_discover_seeds %}
 add("--discover-seed", {{ seed | to_json }})
 {% endfor %}
@@ -89,14 +73,6 @@ add("--persistent-peer", {{ peer | to_json }})
 {% endfor %}
 {% if xian_validator_private_key_hex | length > 0 %}
 add_secret_file("--validator-privkey", {{ xian_container_validator_private_key_hex_file | to_json }})
-{% endif %}
-{% for server in xian_statesync_rpc_servers %}
-add("--statesync-rpc-server", {{ server | to_json }})
-{% endfor %}
-{% if xian_statesync_enable %}
-add("--statesync-trust-height", {{ xian_statesync_trust_height | to_json }})
-add("--statesync-trust-hash", {{ xian_statesync_trust_hash | to_json }})
-add("--statesync-trust-period", {{ xian_statesync_trust_period | to_json }})
 {% endif %}
 
 raise SystemExit(main(args))

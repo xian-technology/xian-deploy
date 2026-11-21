@@ -19,19 +19,13 @@ xian_host_hardening_firewall_allowed_tcp_ports:
 # Paths on the control machine.
 xian_node_profile: /path/to/network/nodes/validator-1.json
 xian_node_home_archive: /path/to/node-home.tar.gz
-xian_state_snapshot_archive: ""
-xian_state_snapshot_sha256: ""
-xian_state_snapshot_expected_chain_id: ""
-xian_state_snapshot_expected_height: 0
-xian_state_snapshot_expected_app_hash: ""
 xian_node_home_replace: true
 
 # Optional deployment-only inputs. Runtime intent belongs in xian_node_profile.
 xian_discover_seeds: []
-# The network manifest used by `xian node init`. Required only when deploy
-# builds a bundle genesis; chain_id, genesis_time and runtime_features come
-# from it so every node builds the same genesis.
-xian_network_manifest: ""
+# The network manifest used by `xian node init`. Use its chain ID and
+# genesis_sha256 to verify the installed home before configuration.
+xian_network_manifest: /path/to/network/manifest.json
 xian_chain_id: ""
 xian_snapshot_expected_chain_id: ""
 xian_validator_private_key_hex: ""
@@ -63,6 +57,11 @@ xian_grafana_port: 3000
 xian_require_digest_pinned_third_party_images: false
 xian_public_monitoring_enabled: false
 xian_monitoring_public_auth_confirmed: false
+# Required only when deploying or upgrading a profile with monitoring enabled.
+# Use a versioned xian-stack release URL or an absolute controller path.
+# Pin the SHA-256 from the verified xian-monitoring.tar.sha256 release asset.
+xian_monitoring_bundle_source: ""
+xian_monitoring_bundle_sha256: ""
 # Alertmanager host:port targets for Prometheus; [] sends alerts nowhere.
 xian_alertmanager_targets: []
 

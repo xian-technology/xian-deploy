@@ -1,0 +1,32 @@
+---
+- name: Validate the manifest genesis pin
+  ansible.builtin.assert:
+    that:
+      - >-
+        xian_network.get('genesis_sha256') is none or
+        (xian_network.genesis_sha256 is string and
+        xian_network.genesis_sha256 is match('^[0-9a-fA-F]{64}\Z'))
+    fail_msg: The network manifest genesis_sha256 must be 64 hexadecimal characters.
+  when: xian_check_genesis | default(true) | bool
+
+- name: Verify the installed node home
+  ansible.builtin.command:
+    expand_argument_vars: false
+    argv:
+      - docker
+      - run
+      - --rm
+      - --network
+      - none
+      - --entrypoint
+      - python
+      - --mount
+      - "type=bind,source={{ xian_node_home_check_path | default(xian_cometbft_home) }},target=/root/.cometbft,readonly"
+      - "{{ xian_node_image_integrated }}"
+      - -Ic
+      - "{{ lookup('ansible.builtin.file', role_path ~ '/files/validate_node_home.py', rstrip=false) }}"
+      - /root/.cometbft
+      - "{{ (xian_check_genesis | default(true) | bool) | ternary('genesis', 'config') }}"
+      - "{{ xian_effective_chain_id }}"
+      - "{{ xian_network.get('genesis_sha256') | default('', true) | lower }}"
+  changed_when: false

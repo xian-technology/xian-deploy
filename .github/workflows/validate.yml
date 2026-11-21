@@ -17,7 +17,7 @@ jobs:
         with:
           path: xian-deploy
 
-      - name: Checkout canonical stopped-home guard source
+      - name: Checkout canonical runtime and monitoring assets
         uses: actions/checkout@v7
         with:
           repository: xian-technology/xian-stack
@@ -35,6 +35,11 @@ jobs:
         run: |
           git -C ../xian-stack rev-parse HEAD
           python3 -c "import hashlib,pathlib; p=pathlib.Path('../xian-stack/scripts/node_store_runtime_guard.py'); print(hashlib.sha256(p.read_bytes()).hexdigest(),p)"
+
+      - name: Build and pin the canonical monitoring test bundle
+        run: |
+          python3 ../xian-stack/scripts/package_monitoring.py "$RUNNER_TEMP/xian-monitoring"
+          echo "XIAN_MONITORING_TEST_BUNDLE=$RUNNER_TEMP/xian-monitoring/xian-monitoring.tar" >> "$GITHUB_ENV"
 
       - name: Lint playbooks
         run: make lint

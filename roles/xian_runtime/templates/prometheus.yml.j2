@@ -2,8 +2,13 @@ global:
   scrape_interval: 5s
   evaluation_interval: 5s
 
+{% if xian_monitoring_alert_variant == "shared_network" %}
 rule_files:
-  - /etc/prometheus/rules.yml
+  - /etc/prometheus/rules/shared-network.yml
+{% if xian_block_policy_mode != "on_demand" %}
+  - /etc/prometheus/rules/block-cadence.yml
+{% endif %}
+{% endif %}
 {% if xian_alertmanager_targets | length > 0 %}
 
 alerting:

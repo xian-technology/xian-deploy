@@ -16,6 +16,13 @@
       ansible.builtin.include_role:
         name: xian_profile
         tasks_from: network_snapshot
+
+    - name: Verify the prepared node home before stopping for restore
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: check_node_home
+      vars:
+        xian_check_genesis: true
   tasks:
     - name: Stop runtime before restore
       ansible.builtin.include_role:

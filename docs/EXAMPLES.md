@@ -19,8 +19,13 @@ Keep real inventories, host vars, and secrets in a private deployment repo.
 
 ## Deploy Sequence
 
-Generate the network and node profiles with `xian-cli`, copy the profile paths
-into your inventory, then run:
+Generate the network and node profiles with `xian-cli`. Run `xian node init`
+for each profile and archive the resulting home contents, including
+`config/genesis.json`. Set `xian_node_profile` and `xian_node_home_archive` to
+those files in inventory. Set `xian_network_manifest` to the preparation
+manifest so deploy can verify the chain ID and any `genesis_sha256` pin.
+
+Run the playbooks in sequence.
 
 ```bash
 ansible-playbook -i inventories/<your>/hosts.yml playbooks/bootstrap.yml

@@ -7,7 +7,7 @@
 - `bootstrap.yml`: prepare the host
 - `push-home.yml`: upload a prepared node home
 - `deploy.yml`: deploy or update the runtime
-- `health.yml`: remote runtime, BDS, disabled P2P state-sync, and disk checks
+- `health.yml`: remote runtime, CometBFT configuration, BDS, and disk checks
 - `upgrade.yml`: serial rollout
 - `restore-network-snapshot.yml`: verify and restore a signed full-node store
 - `smoke.yml`: basic post-deploy health check

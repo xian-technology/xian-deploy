@@ -8,30 +8,25 @@ Required inventory variable:
 - `xian_node_profile`: path to a node profile on the Ansible control machine
 
 The profile is the source of truth for node runtime intent: services, block
-policy, pruning, logging, metrics, state sync, P2P peers, snapshots, and node
+policy, pruning, logging, metrics, P2P peers, snapshots, and node
 images. Inventory still owns deployment bindings such as remote paths, host
 port publishing and secrets.
 
-Optional `xian_network_manifest` points at the network manifest used by
-`xian node init`. It is required when deploy builds a bundle genesis and then
-supplies `chain_id`, `genesis_time`, `runtime_features`, and `fee_policy`, using the same
-profile-over-manifest genesis precedence as `xian node init`. A bundle genesis
-without a fixed `genesis_time` is rejected. A manifest `genesis_sha256` is
-passed to configure, which refuses a home genesis that does not match it.
+Set `xian_network_manifest` to the manifest used by `xian node init` for a
+pinned network. The runtime role checks the prepared home against the manifest's
+`chain_id` and, when present, compares `genesis_sha256` with the SHA-256 of the
+installed `config/genesis.json` bytes.
 
-P2P application state sync is disabled with unmodified upstream CometBFT.
-The role rejects `advanced.statesync.enabled=true` before runtime deployment,
-regardless of release metadata or trust settings. Use ordinary replay or a
-verified full-node-store archive through `restore-network-snapshot.yml`.
-The explicit stop action remains available for an unsupported existing profile;
-it never starts or reconfigures the node.
+Node profiles omit `advanced.statesync`. For compatibility, the role accepts
+a legacy object with `enabled` absent or set to `false`, and ignores its
+recognized trust settings. Stop and status remain available when the legacy
+object is enabled or malformed. Bootstrap through ordinary replay or a verified
+full-node-store archive using `restore-network-snapshot.yml`.
 Upstream source commit/URL/SHA256 provenance remains in the release manifest;
 custom patch/history metadata is not required.
 
-The transaction fee policy is genesis state. Node profiles that set
-`tx_fee_mode`, `max_tx_chi`, or `max_block_chi` are rejected; deploy
-passes the manifest `fee_policy` only when it builds a bundle genesis and never
-writes fee settings into `xian.toml`.
+The transaction fee policy belongs to the genesis prepared by `xian node init`.
+Node profiles that set `tx_fee_mode`, `max_tx_chi`, or `max_block_chi` are rejected.
 
 CometBFT RPC binds to `127.0.0.1` unless `xian_public_rpc_enabled` is true.
 

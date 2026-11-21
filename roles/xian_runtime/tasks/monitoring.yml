@@ -1,0 +1,115 @@
+---
+- name: Require a pinned monitoring bundle
+  ansible.builtin.assert:
+    that:
+      - xian_monitoring_bundle_source is string
+      - xian_monitoring_bundle_source is match('^(https://[^/\s]+/\S+|/.+)$')
+      - xian_monitoring_bundle_sha256 is string
+      - xian_monitoring_bundle_sha256 is match('^[a-fA-F0-9]{64}$')
+    fail_msg: >-
+      Monitoring requires xian_monitoring_bundle_source (an HTTPS release URL
+      or an absolute path on the Ansible controller) and the trusted 64-hex
+      xian_monitoring_bundle_sha256 for that bundle.
+
+- name: Install the selected assets from the verified bundle
+  when: not ansible_check_mode
+  vars:
+    xian_monitoring_common_assets:
+      - alertmanager/alertmanager.example.yml
+      - grafana/dashboards/xian-bds-recovery.json
+      - grafana/dashboards/xian-overview.json
+      - grafana/dashboards/xian-vm-runtime.json
+      - grafana/provisioning/dashboards/xian.yml
+      - grafana/provisioning/datasources/xian.yml
+      - prometheus/rules/block-cadence.yml
+      - prometheus/rules/shared-network.yml
+    xian_monitoring_shared_dashboard: grafana/dashboards/xian-shared-network.json
+    xian_monitoring_selected_assets: >-
+      {{ xian_monitoring_common_assets +
+         ([xian_monitoring_shared_dashboard] if xian_monitoring_dashboard_variant == 'shared_network' else []) }}
+  block:
+    - name: Create private bundle staging directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: xian-monitoring-
+      register: xian_monitoring_staging
+      changed_when: false
+
+    - name: Download the pinned HTTPS release asset
+      ansible.builtin.get_url:
+        url: "{{ xian_monitoring_bundle_source }}"
+        checksum: "sha256:{{ xian_monitoring_bundle_sha256 | lower }}"
+        dest: "{{ xian_monitoring_staging.path }}/bundle.tar"
+        mode: "0600"
+      when: xian_monitoring_bundle_source is match('^https://')
+      changed_when: false
+
+    - name: Transfer the controller's monitoring bundle
+      ansible.builtin.copy:
+        src: "{{ xian_monitoring_bundle_source }}"
+        dest: "{{ xian_monitoring_staging.path }}/bundle.tar"
+        mode: "0600"
+      when: xian_monitoring_bundle_source is match('^/')
+      changed_when: false
+
+    - name: Read the staged bundle's SHA-256
+      ansible.builtin.stat:
+        path: "{{ xian_monitoring_staging.path }}/bundle.tar"
+        checksum_algorithm: sha256
+      register: xian_staged_monitoring_bundle
+
+    - name: Verify the staged bundle before unpacking
+      ansible.builtin.assert:
+        that: xian_staged_monitoring_bundle.stat.checksum == (xian_monitoring_bundle_sha256 | lower)
+        fail_msg: The staged monitoring bundle does not match xian_monitoring_bundle_sha256.
+
+    - name: Unpack the required monitoring files
+      ansible.builtin.command:
+        argv: >-
+          {{ ['tar', '-xf', xian_monitoring_staging.path ~ '/bundle.tar',
+              '-C', xian_monitoring_staging.path, '--no-same-owner', '--no-same-permissions']
+              + xian_monitoring_common_assets + [xian_monitoring_shared_dashboard] }}
+      changed_when: false
+
+    - name: Create monitoring asset directories
+      ansible.builtin.file:
+        path: "{{ xian_monitoring_dir }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ xian_monitoring_selected_assets | map('dirname') | unique | list }}"
+
+    - name: Install monitoring assets
+      ansible.builtin.copy:
+        src: "{{ xian_monitoring_staging.path }}/{{ item }}"
+        dest: "{{ xian_monitoring_dir }}/{{ item }}"
+        remote_src: true
+        mode: "0644"
+      loop: "{{ xian_monitoring_selected_assets }}"
+
+    - name: Remove shared-network dashboard for other profiles
+      ansible.builtin.file:
+        path: "{{ xian_monitoring_dir }}/{{ xian_monitoring_shared_dashboard }}"
+        state: absent
+      when: xian_monitoring_dashboard_variant != 'shared_network'
+  always:
+    - name: Remove temporary monitoring bundle staging
+      ansible.builtin.file:
+        path: "{{ xian_monitoring_staging.path }}"
+        state: absent
+      when: xian_monitoring_staging.path is defined
+      changed_when: false
+
+- name: Render Prometheus config with host bindings and profile rule selection
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ xian_monitoring_dir }}/prometheus/prometheus.yml"
+    mode: "0644"
+  register: xian_rendered_prometheus_config
+  when: not ansible_check_mode
+
+- name: Render monitoring Compose file
+  ansible.builtin.template:
+    src: docker-compose.monitoring.yml.j2
+    dest: "{{ xian_monitoring_compose_path }}"
+    mode: "0644"
+  when: not ansible_check_mode

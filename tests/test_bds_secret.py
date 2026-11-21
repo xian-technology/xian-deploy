@@ -36,6 +36,7 @@ class BdsSecretTest(PlaybookTestCase):
             (REPO_ROOT / "inventories/example/group_vars/all/main.yml").read_text(encoding="utf-8")
         )
         inventory.pop("xian_node_profile")
+        inventory.pop("xian_network_manifest")
         result = run_play(
             self.workdir,
             profile=bds_profile(),

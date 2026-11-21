@@ -34,8 +34,11 @@ ansible-playbook playbooks/health.yml         # run remote health checks
 
 That flow assumes:
 
-- a node-home archive has already been prepared (typically with `xian-cli`)
+- `xian node init` has prepared a node home with `config/genesis.json` and
+  you have archived the contents for upload
 - `xian_node_profile` points at the canonical node profile for each host
+- `xian_network_manifest` points at the preparation manifest when the
+  network pins `genesis_sha256`
 - inventory and group vars are set for published ports, secrets, and
   `xian_deploy_root` or explicit path overrides
 - the target uses released Xian images, not local source builds
@@ -45,8 +48,8 @@ That flow assumes:
 - **Deploy released artifacts.** No source checkouts on the target host. The
   node runs the same images that `xian-stack` builds and signs.
 - **Profile-driven runtime.** The node profile is the source of truth for
-  runtime intent: enabled services, block policy, monitoring posture, state
-  sync, metrics, P2P peers, snapshots, and node images.
+  runtime intent: enabled services, block policy, monitoring posture,
+  metrics, P2P peers, snapshots, and node images.
 - **Inventory for deploy bindings.** Inventory owns host paths, published
   ports, secrets and resource limits. The example
   inventory sets `xian_deploy_root`; derived paths come from role defaults
@@ -92,8 +95,9 @@ That flow assumes:
 Generate node profiles from the matching `xian-configs/templates/` starter and
 set `xian_node_profile` per host as described in `docs/EXAMPLES.md`.
 
-Xian uses unmodified upstream CometBFT. Profiles with P2P application state
-sync enabled are rejected before deployment. Use ordinary replay or
+Xian uses unmodified upstream CometBFT. Deploy and restart validate the
+installed CometBFT configuration and require P2P application state sync to
+be disabled. Bootstrap through ordinary replay or use
 `restore-network-snapshot.yml` with a verified full-node-store snapshot.
 
 Full-store restore consumes the profile's `snapshot_url` and trusted

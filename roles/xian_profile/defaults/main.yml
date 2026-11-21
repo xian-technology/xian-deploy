@@ -15,18 +15,11 @@ xian_monitoring_dir: "{{ xian_runtime_dir }}/monitoring"
 
 
 xian_discover_seeds: []
-xian_genesis_source: ""
-# Control-machine path to the network manifest used by `xian node init`.
-# Required when the node builds a bundle genesis during deploy.
+# Control-machine path to the manifest used to prepare the node home.
 xian_network_manifest: ""
 xian_chain_id: ""
 xian_validator_private_key_hex: ""
 xian_snapshot_expected_chain_id: ""
-xian_state_snapshot_archive: ""
-xian_state_snapshot_sha256: ""
-xian_state_snapshot_expected_chain_id: ""
-xian_state_snapshot_expected_height: 0
-xian_state_snapshot_expected_app_hash: ""
 
 xian_bds_dsn: ""
 xian_bds_host: postgres

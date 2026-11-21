@@ -34,8 +34,6 @@
       - "xian_profile.get('advanced') is mapping"
       - "'cometbft' in (xian_profile.get('advanced') | default({}, true))"
       - "(xian_profile.get('advanced') | default({}, true)).get('cometbft', {}) is mapping"
-      - "'statesync' in (xian_profile.get('advanced') | default({}, true))"
-      - "(xian_profile.get('advanced') | default({}, true)).get('statesync', {}) is mapping"
       - "'metrics' in (xian_profile.get('advanced') | default({}, true))"
       - "(xian_profile.get('advanced') | default({}, true)).get('metrics', {}) is mapping"
       - "'pending_nonce' in (xian_profile.get('advanced') | default({}, true))"
@@ -61,9 +59,24 @@
 - name: Extract node profile sections
   ansible.builtin.set_fact:
     xian_profile_p2p: "{{ xian_profile.get('p2p', {}) }}"
-    xian_profile_genesis: "{{ xian_profile.get('genesis') | default({}, true) }}"
     xian_profile_services: "{{ xian_profile.get('services', {}) }}"
     xian_profile_advanced: "{{ xian_profile.get('advanced', {}) }}"
+
+- name: Validate legacy state sync profile intent
+  vars:
+    xian_legacy_state_sync: "{{ xian_profile_advanced.statesync }}"
+  ansible.builtin.assert:
+    that:
+      - xian_legacy_state_sync is mapping
+      - (xian_legacy_state_sync.keys() | difference(['enabled', 'rpc_servers', 'trust_height', 'trust_hash', 'trust_period']) | length) == 0
+      - xian_legacy_state_sync.get('enabled', false) is sameas false
+    fail_msg: >-
+      P2P application state sync is unsupported with upstream CometBFT.
+      Remove advanced.statesync or use a legacy object with enabled=false.
+      Bootstrap with ordinary replay or a verified full-node-store snapshot.
+  when:
+    - (xian_runtime_action | default('deploy')) not in ['stop', 'status']
+    - "'statesync' in xian_profile_advanced"
 
 - name: Extract service and advanced profile sections
   ansible.builtin.set_fact:
@@ -71,7 +84,6 @@
     xian_profile_dashboard: "{{ xian_profile_services.get('dashboard', {}) }}"
     xian_profile_monitoring: "{{ xian_profile_services.get('monitoring', {}) }}"
     xian_profile_cometbft: "{{ xian_profile_advanced.get('cometbft', {}) }}"
-    xian_profile_statesync: "{{ xian_profile_advanced.get('statesync', {}) }}"
     xian_profile_metrics: "{{ xian_profile_advanced.get('metrics', {}) }}"
     xian_profile_pending_nonce: "{{ xian_profile_advanced.get('pending_nonce', {}) }}"
 
@@ -186,12 +198,6 @@
       - prometheus
       - proxy_app
       - external_address
-    xian_profile_allowed_statesync_keys:
-      - enabled
-      - rpc_servers
-      - trust_height
-      - trust_hash
-      - trust_period
     xian_profile_allowed_metrics_keys:
       - enabled
       - host
@@ -211,7 +217,6 @@
       - "((xian_profile_services.get('shielded_relayer', {}) | default({}, true)).keys() | list | difference(xian_profile_allowed_shielded_relayer_keys) | length) == 0"
       - "(xian_profile_advanced.keys() | list | difference(xian_profile_allowed_advanced_keys) | length) == 0"
       - "((xian_profile_cometbft | default({}, true)).keys() | list | difference(xian_profile_allowed_cometbft_keys) | length) == 0"
-      - "((xian_profile_statesync | default({}, true)).keys() | list | difference(xian_profile_allowed_statesync_keys) | length) == 0"
       - "((xian_profile_metrics | default({}, true)).keys() | list | difference(xian_profile_allowed_metrics_keys) | length) == 0"
       - "((xian_profile_pending_nonce | default({}, true)).keys() | list | difference(xian_profile_allowed_pending_nonce_keys) | length) == 0"
       - "not ((xian_profile_services.get('intentkit', {}).get('enabled', false) | bool) or (xian_profile_services.get('dex_automation', {}).get('enabled', false) | bool) or (xian_profile_services.get('shielded_relayer', {}).get('enabled', false) | bool))"
@@ -258,11 +263,6 @@
     xian_simulation_max_chi: "{{ xian_profile.get('simulation_max_chi') | default('', true) }}"
     xian_pending_nonce_reservation_ttl_seconds: "{{ xian_profile_pending_nonce.get('reservation_ttl_seconds', 60.0) | float }}"
     xian_max_pending_nonces_per_sender: "{{ xian_profile_pending_nonce.get('max_per_sender', 128) | int }}"
-    xian_statesync_enable: "{{ xian_profile_statesync.get('enabled', false) | bool }}"
-    xian_statesync_rpc_servers: "{{ xian_profile_statesync.get('rpc_servers', []) }}"
-    xian_statesync_trust_height: "{{ xian_profile_statesync.get('trust_height', 0) | int }}"
-    xian_statesync_trust_hash: "{{ xian_profile_statesync.get('trust_hash', '') }}"
-    xian_statesync_trust_period: "{{ xian_profile_statesync.get('trust_period', '168h0m0s') }}"
     xian_metrics_enabled: "{{ xian_profile_metrics.get('enabled', true) | bool }}"
     xian_app_metrics_bind_host: "{{ xian_profile_metrics.get('host', '127.0.0.1') }}"
     xian_app_metrics_port: "{{ xian_profile_metrics.get('port', 9108) | int }}"
@@ -319,104 +319,15 @@
         else {}
       }}
 
-- name: Refuse unsupported P2P application state sync
-  ansible.builtin.assert:
-    that:
-      - not (xian_statesync_enable | bool)
-    fail_msg: >-
-      P2P application state sync is disabled with unmodified upstream CometBFT.
-      Use ordinary replay or a verified full-node-store snapshot with
-      restore-network-snapshot.yml.
-  when: (xian_runtime_action | default('deploy')) != 'stop'
-
-# Same precedence as `xian node init`: the profile genesis overrides the
-# manifest genesis, and chain_id/runtime_features belong to the manifest.
-- name: Resolve effective genesis inputs
+- name: Resolve network chain id
   ansible.builtin.set_fact:
-    xian_effective_genesis: >-
-      {{
-        xian_profile_genesis
-        if (xian_profile_genesis | length > 0)
-        else (xian_network.get('genesis') | default({}, true))
-      }}
     xian_effective_chain_id: "{{ xian_network.get('chain_id') | default(xian_chain_id, true) }}"
-    xian_runtime_features: "{{ xian_network.get('runtime_features') | default({}, true) }}"
-    # The network's genesis pin; configure refuses a genesis that hashes differently.
-    xian_genesis_sha256: "{{ xian_network.get('genesis_sha256') | default('', true) }}"
-
-# A manifest source genesis is a control-machine file already materialized in
-# the pushed node home, so only profile sources are copied from xian-configs.
-- name: Derive genesis build inputs
-  ansible.builtin.set_fact:
-    xian_genesis_source: "{{ xian_profile_genesis.get('source') if xian_profile_genesis.get('kind') == 'source' else xian_genesis_source }}"
-    xian_genesis_bundle: "{{ xian_effective_genesis.get('bundle') if xian_effective_genesis.get('kind') == 'bundle' else '' }}"
-    xian_genesis_time: "{{ (xian_effective_genesis.get('genesis_time') | default('', true)) if xian_effective_genesis.get('kind') == 'bundle' else '' }}"
-
-- name: Validate genesis source selection
-  ansible.builtin.assert:
-    that:
-      - not ((xian_genesis_source | length > 0) and (xian_genesis_bundle | length > 0))
-    fail_msg: pass either a genesis source or a bundle genesis, not both
-
-- name: Validate bundle genesis comes from the network manifest
-  ansible.builtin.assert:
-    that:
-      - (xian_genesis_bundle | length == 0) or (xian_network_manifest | length > 0)
-    fail_msg: >-
-      Building a bundle genesis requires xian_network_manifest, the manifest
-      used by `xian node init`, so chain_id, genesis_time and runtime_features
-      produce the same genesis on every node.
-
-- name: Validate bundle genesis pins its time
-  ansible.builtin.assert:
-    that:
-      - (xian_genesis_bundle | length == 0) or (xian_genesis_time | length > 0)
-    fail_msg: >-
-      The bundle genesis must pin genesis_time; sampling the current time
-      would give every node a different genesis.
 
 - name: Validate network chain id
   ansible.builtin.assert:
     that:
-      - (xian_genesis_bundle | length == 0) or (xian_effective_chain_id | length > 0)
       - (xian_network | length == 0) or (xian_chain_id | length == 0) or (xian_chain_id == xian_effective_chain_id)
-    fail_msg: >-
-      xian_chain_id must be empty or match the network manifest chain_id, and a
-      bundle genesis needs a chain_id.
-
-# The fee policy is genesis state (`__fee_policy`); deploy only passes it when
-# it builds a bundle genesis, exactly as `xian node init` does.
-- name: Resolve genesis fee policy
-  ansible.builtin.set_fact:
-    xian_fee_policy: "{{ xian_network.get('fee_policy') | default({}, true) }}"
-
-# A manifest fee_policy is either absent (the node's genesis default) or the
-# canonical form `xian network create` writes: the mode and both chi caps.
-# The node checks the remaining bounds when it builds genesis.
-- name: Validate genesis fee policy
-  vars:
-    xian_fee_policy_fields: ['tx_fee_mode', 'max_tx_chi', 'max_block_chi']
-  ansible.builtin.assert:
-    that:
-      - xian_fee_policy is mapping
-      - (xian_fee_policy | length == 0) or ((xian_network.get('genesis') | default({}, true)).get('kind') == 'bundle')
-      - (xian_fee_policy | length == 0) or (
-          (xian_fee_policy.keys() | list | sort) == (xian_fee_policy_fields | sort)
-          and xian_fee_policy.tx_fee_mode in ['paid_metered', 'free_metered']
-          and xian_fee_policy.max_tx_chi is integer and xian_fee_policy.max_tx_chi > 0
-          and xian_fee_policy.max_block_chi is integer
-          and xian_fee_policy.max_block_chi >= xian_fee_policy.max_tx_chi)
-    fail_msg: >-
-      The network manifest fee_policy must be canonical: tx_fee_mode
-      (paid_metered or free_metered) with positive integer max_tx_chi <=
-      max_block_chi, and only with a bundle genesis.
-
-- name: Validate runtime features
-  ansible.builtin.assert:
-    that:
-      - xian_runtime_features is mapping
-      - (xian_runtime_features.keys() | list | difference(['zk']) | length) == 0
-    fail_msg: network manifest runtime_features may only contain zk
+    fail_msg: xian_chain_id must be empty or match the network manifest chain_id.
 
 - name: Validate RPC exposure
   vars:
@@ -508,7 +419,7 @@
         or (xian_node_exporter_image is match(xian_digest_pinned_image_ref_pattern))
     fail_msg: >-
       The node profile produced an invalid remote runtime. Check the profile
-      services, advanced state-sync settings, BDS deployment bindings,
+      services, BDS deployment bindings,
       and validator key material. BDS deployments must
       provide a non-empty password that is not a weak example value. Public
       monitoring binds require xian_public_monitoring_enabled=true and

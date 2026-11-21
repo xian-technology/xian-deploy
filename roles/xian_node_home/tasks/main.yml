@@ -9,38 +9,78 @@
 - name: Check validator signing state before touching the home
   ansible.builtin.import_tasks: check_signing_state.yml
 
-- name: Inspect the managed runtime configuration
-  ansible.builtin.stat:
-    path: "{{ xian_runtime_dir }}/docker-compose.yml"
-  register: xian_node_home_runtime_config
+- name: Stage and validate the incoming node home before installation
+  when: not ansible_check_mode
+  block:
+    - name: Create private node-home staging directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: xian-node-home-
+      register: xian_node_home_stage
 
-- name: Stop a managed runtime before replacing its home
-  ansible.builtin.include_role:
-    name: xian_runtime
-  vars:
-    xian_runtime_action: stop
-  when: xian_node_home_runtime_config.stat.exists
+    - name: Create staged home directory
+      ansible.builtin.file:
+        path: "{{ xian_node_home_stage.path }}/home"
+        state: directory
+        mode: "0755"
 
-# A height-zero validator may have signed while the stop command was running.
-- name: Recheck signing state after the managed runtime stopped
-  ansible.builtin.import_tasks: check_signing_state.yml
-  when: xian_node_home_runtime_config.stat.exists
+    - name: Upload and extract the incoming archive into staging
+      ansible.builtin.unarchive:
+        src: "{{ xian_node_home_archive }}"
+        dest: "{{ xian_node_home_stage.path }}/home"
+        remote_src: false
 
-- name: Remove existing node home
-  ansible.builtin.file:
-    path: "{{ xian_cometbft_home }}"
-    state: absent
-  when: xian_node_home_replace | bool
+    - name: Verify the archived genesis before touching the current home
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: check_node_home
+      vars:
+        xian_check_genesis: true
+        xian_node_home_check_path: "{{ xian_node_home_stage.path }}/home"
 
-- name: Create node home directory
-  ansible.builtin.file:
-    path: "{{ xian_cometbft_home }}"
-    state: directory
-    mode: "0755"
+    - name: Inspect the managed runtime configuration
+      ansible.builtin.stat:
+        path: "{{ xian_runtime_dir }}/docker-compose.yml"
+      register: xian_node_home_runtime_config
 
-- name: Upload and extract node home archive
-  ansible.builtin.unarchive:
-    src: "{{ xian_node_home_archive }}"
-    dest: "{{ xian_cometbft_home }}"
-    remote_src: false
+    - name: Stop a managed runtime before replacing its home
+      ansible.builtin.include_role:
+        name: xian_runtime
+      vars:
+        xian_runtime_action: stop
+      when: xian_node_home_runtime_config.stat.exists
 
+    # A height-zero validator may have signed while the stop command was running.
+    - name: Recheck signing state after the managed runtime stopped
+      ansible.builtin.import_tasks: check_signing_state.yml
+      when: xian_node_home_runtime_config.stat.exists
+
+    - name: Remove existing node home
+      ansible.builtin.file:
+        path: "{{ xian_cometbft_home }}"
+        state: absent
+      when: xian_node_home_replace | bool
+
+    - name: Create node home directory
+      ansible.builtin.file:
+        path: "{{ xian_cometbft_home }}"
+        state: directory
+        mode: "0755"
+
+    - name: Install the validated node home
+      ansible.builtin.command:
+        expand_argument_vars: false
+        argv:
+          - cp
+          - -a
+          - --
+          - "{{ xian_node_home_stage.path }}/home/."
+          - "{{ xian_cometbft_home }}"
+      changed_when: true
+
+  always:
+    - name: Remove node-home staging directory
+      ansible.builtin.file:
+        path: "{{ xian_node_home_stage.path }}"
+        state: absent
+      when: xian_node_home_stage.path is defined

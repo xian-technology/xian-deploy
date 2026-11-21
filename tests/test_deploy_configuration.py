@@ -44,50 +44,45 @@ class SnapshotArgumentsTest(PlaybookTestCase):
 
 
 @requires_ansible
-class BundleGenesisTest(PlaybookTestCase):
-    def test_bundle_genesis_uses_the_manifest_chain_time_and_runtime_features(self) -> None:
-        result, arguments = render_configure_wrapper(self.workdir, manifest=bundle_manifest())
-
-        self.assertPlaySucceeded(result)
-        self.assertEqual(option_values(arguments, "--genesis-bundle"), ["mainnet"])
-        self.assertEqual(option_values(arguments, "--chain-id"), ["local-dev-1"])
-        self.assertEqual(option_values(arguments, "--genesis-time"), [GENESIS_TIME])
-        self.assertIn("--runtime-feature-zk", arguments)
-        self.assertNotIn("--no-runtime-feature-zk", arguments)
-
-    def test_disabled_runtime_features_are_passed_explicitly(self) -> None:
-        result, arguments = render_configure_wrapper(
-            self.workdir, manifest=bundle_manifest(runtime_features={"zk": False})
+class PreparedHomeArgumentsTest(PlaybookTestCase):
+    def test_deploy_ignores_genesis_preparation_inputs(self) -> None:
+        bundle = {"kind": "bundle", "bundle": "mainnet", "genesis_time": GENESIS_TIME}
+        source = {"kind": "source", "source": "./genesis.json"}
+        cases = (
+            ("bundle-manifest", {}, bundle),
+            ("source-profile", {"genesis": source}, bundle),
+            ("bundle-profile", {"genesis": bundle}, source),
         )
+        for name, overrides, manifest_genesis in cases:
+            with self.subTest(name=name):
+                workdir = self.workdir / name
+                workdir.mkdir()
+                result, arguments = render_configure_wrapper(
+                    workdir,
+                    profile=canonical_profile(**overrides),
+                    manifest=bundle_manifest(
+                        genesis=manifest_genesis,
+                        genesis_sha256="ab" * 32,
+                        fee_policy={
+                            "tx_fee_mode": "free_metered",
+                            "max_tx_chi": 150000,
+                            "max_block_chi": 400000,
+                        },
+                    ),
+                )
 
-        self.assertPlaySucceeded(result)
-        self.assertIn("--no-runtime-feature-zk", arguments)
-
-    def test_profile_bundle_genesis_overrides_the_manifest_like_node_init(self) -> None:
-        profile = canonical_profile(
-            genesis={"kind": "bundle", "bundle": "mainnet", "genesis_time": "2026-03-30T00:00:00Z"}
-        )
-        result, arguments = render_configure_wrapper(
-            self.workdir, profile=profile, manifest=bundle_manifest()
-        )
-
-        self.assertPlaySucceeded(result)
-        self.assertEqual(option_values(arguments, "--genesis-bundle"), ["mainnet"])
-        self.assertEqual(option_values(arguments, "--genesis-time"), ["2026-03-30T00:00:00Z"])
-
-    def test_bundle_genesis_without_fixed_time_is_rejected(self) -> None:
-        manifest = bundle_manifest(genesis={"kind": "bundle", "bundle": "mainnet"})
-        result, _ = render_configure_wrapper(self.workdir, manifest=manifest)
-
-        self.assertPlayFailed(result, "genesis_time")
-
-    def test_profile_bundle_genesis_requires_the_network_manifest(self) -> None:
-        profile = canonical_profile(
-            genesis={"kind": "bundle", "bundle": "mainnet", "genesis_time": GENESIS_TIME}
-        )
-        result, _ = render_configure_wrapper(self.workdir, profile=profile)
-
-        self.assertPlayFailed(result, "xian_network_manifest")
+                self.assertPlaySucceeded(result)
+                self.assertFalse(any(argument.startswith("--genesis") for argument in arguments))
+                self.assertTrue(
+                    {
+                        "--chain-id",
+                        "--runtime-feature-zk",
+                        "--no-runtime-feature-zk",
+                        "--tx-fee-mode",
+                        "--max-tx-chi",
+                        "--max-block-chi",
+                    }.isdisjoint(arguments)
+                )
 
     def test_inventory_chain_id_must_match_the_manifest(self) -> None:
         result, _ = render_configure_wrapper(
@@ -96,91 +91,9 @@ class BundleGenesisTest(PlaybookTestCase):
 
         self.assertPlayFailed(result, "xian_chain_id")
 
-    def test_manifest_source_genesis_keeps_the_pushed_home_genesis(self) -> None:
-        manifest = bundle_manifest(genesis={"kind": "source", "source": "./genesis.json"})
-        result, arguments = render_configure_wrapper(self.workdir, manifest=manifest)
-
-        self.assertPlaySucceeded(result)
-        self.assertEqual(
-            [argument for argument in arguments if argument.startswith("--genesis")], []
-        )
-        self.assertNotIn("--chain-id", arguments)
-
-
-PIN = "ab" * 32
-
 
 @requires_ansible
-class GenesisPinTest(PlaybookTestCase):
-    """Deploy hands the manifest's genesis_sha256 to xian-configure-node, which
-    refuses a rebuilt, copied or already installed genesis that differs."""
-
-    def test_the_manifest_pin_reaches_configure_for_every_genesis_kind(self) -> None:
-        manifests = {
-            "bundle": bundle_manifest(genesis_sha256=PIN),
-            "source": bundle_manifest(
-                genesis={"kind": "source", "source": "./genesis.json"}, genesis_sha256=PIN
-            ),
-            "unpinned": bundle_manifest(),
-        }
-        for name, manifest in manifests.items():
-            with self.subTest(name=name):
-                workdir = self.workdir / f"pin-{name}"
-                workdir.mkdir()
-                result, arguments = render_configure_wrapper(workdir, manifest=manifest)
-
-                self.assertPlaySucceeded(result)
-                expected = [] if name == "unpinned" else [PIN]
-                self.assertEqual(option_values(arguments, "--genesis-sha256"), expected)
-
-
-FEE_OPTIONS = ("--tx-fee-mode", "--max-tx-chi", "--max-block-chi")
-FREE_POLICY = {
-    "tx_fee_mode": "free_metered",
-    "max_tx_chi": 150000,
-    "max_block_chi": 400000,
-}
-PAID_POLICY = {
-    "tx_fee_mode": "paid_metered",
-    "max_tx_chi": 100000,
-    "max_block_chi": 300000,
-}
-
-
-@requires_ansible
-class GenesisFeePolicyTest(PlaybookTestCase):
-    def test_bundle_genesis_passes_the_manifest_fee_policy(self) -> None:
-        for index, policy in enumerate((FREE_POLICY, PAID_POLICY)):
-            with self.subTest(mode=policy["tx_fee_mode"]):
-                workdir = self.workdir / str(index)
-                workdir.mkdir()
-                result, arguments = render_configure_wrapper(
-                    workdir, manifest=bundle_manifest(fee_policy=policy)
-                )
-
-                self.assertPlaySucceeded(result)
-                self.assertEqual(
-                    option_values(arguments, "--tx-fee-mode"), [policy["tx_fee_mode"]]
-                )
-                self.assertEqual(
-                    option_values(arguments, "--max-tx-chi"), [str(policy["max_tx_chi"])]
-                )
-                self.assertEqual(
-                    option_values(arguments, "--max-block-chi"), [str(policy["max_block_chi"])]
-                )
-
-    def test_bundle_genesis_without_fee_policy_uses_the_paid_default(self) -> None:
-        result, arguments = render_configure_wrapper(self.workdir, manifest=bundle_manifest())
-
-        self.assertPlaySucceeded(result)
-        self.assertEqual([argument for argument in arguments if argument in FEE_OPTIONS], [])
-
-    def test_configuring_an_existing_genesis_never_passes_fee_options(self) -> None:
-        result, arguments = render_configure_wrapper(self.workdir)
-
-        self.assertPlaySucceeded(result)
-        self.assertEqual([argument for argument in arguments if argument in FEE_OPTIONS], [])
-
+class NodeConfigurationTest(PlaybookTestCase):
     def test_profile_fee_settings_are_rejected(self) -> None:
         profile = canonical_profile(tx_fee_mode="free_metered")
         result, _ = render_configure_wrapper(self.workdir, profile=profile)
@@ -208,7 +121,7 @@ class GenesisFeePolicyTest(PlaybookTestCase):
 
     def test_profile_external_address_is_passed_to_configure(self) -> None:
         def advanced(cometbft: dict) -> dict:
-            return {"cometbft": cometbft, "statesync": {}, "metrics": {}, "pending_nonce": {}}
+            return {"cometbft": cometbft, "metrics": {}, "pending_nonce": {}}
 
         cases = (
             ("unset", canonical_profile(), [""]),
@@ -228,7 +141,7 @@ class GenesisFeePolicyTest(PlaybookTestCase):
 
     def test_unknown_advanced_profile_keys_are_rejected(self) -> None:
         profile = canonical_profile(
-            advanced={"cometbft": {}, "statesync": {}, "metrics": {}, "pending_nonce": {}, "typo": {}}
+            advanced={"cometbft": {}, "metrics": {}, "pending_nonce": {}, "typo": {}}
         )
         result, _ = render_configure_wrapper(self.workdir, profile=profile)
         self.assertPlayFailed(result, "Fix unknown")
@@ -238,37 +151,6 @@ class GenesisFeePolicyTest(PlaybookTestCase):
         result, _ = render_configure_wrapper(self.workdir, profile=profile)
 
         self.assertPlayFailed(result, "unknown key(s): monitoring_profile")
-
-    def test_fee_policy_requires_a_bundle_manifest_genesis(self) -> None:
-        manifest = bundle_manifest(
-            genesis={"kind": "source", "source": "./genesis.json"}, fee_policy=FREE_POLICY
-        )
-        result, _ = render_configure_wrapper(self.workdir, manifest=manifest)
-
-        self.assertPlayFailed(result, "only with a bundle genesis")
-
-    def test_manifest_fee_policy_must_be_canonical(self) -> None:
-        for index, fee_policy in enumerate(
-            (
-                FREE_POLICY | {"tx_fee_mode": "gratis"},
-                # Canonical policies always carry both caps.
-                {"tx_fee_mode": "paid_metered"},
-                {"tx_fee_mode": "free_metered", "max_tx_chi": 10},
-                FREE_POLICY | {"max_tx_chi": 0},
-                FREE_POLICY | {"max_tx_chi": 10, "max_block_chi": 9},
-                FREE_POLICY | {"max_tx_chi": True},
-                FREE_POLICY | {"extra": 1},
-                # The pre-revision-11 field names are gone.
-                {"tx_fee_mode": "free_metered", "free_tx_max_chi": 1, "free_block_max_chi": 2},
-            )
-        ):
-            with self.subTest(fee_policy=fee_policy):
-                workdir = self.workdir / str(index)
-                workdir.mkdir()
-                result, _ = render_configure_wrapper(
-                    workdir, manifest=bundle_manifest(fee_policy=fee_policy)
-                )
-                self.assertPlayFailed(result, "fee_policy")
 
 
 @requires_ansible

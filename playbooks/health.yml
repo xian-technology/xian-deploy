@@ -20,6 +20,13 @@
   roles:
     - xian_profile
   tasks:
+    - name: Validate installed CometBFT configuration
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: check_node_home
+      vars:
+        xian_check_genesis: false
+
     - name: Collect running compose services
       ansible.builtin.shell: >-
         docker compose
@@ -109,52 +116,6 @@
         - xian_bds_enabled | bool
         - not (xian_health_bds_raw.failed | default(false))
         - (xian_health_bds_raw.json.result.response.value | default('')) | length > 0
-
-    - name: Read rendered state-sync readiness
-      ansible.builtin.shell: |
-        python3 - <<'PY' {{ xian_cometbft_home | quote }}
-        import json
-        import sys
-        import tomllib
-        from pathlib import Path
-
-        config_path = Path(sys.argv[1]) / "config" / "config.toml"
-        try:
-            config = tomllib.loads(config_path.read_text(encoding="utf-8"))
-        except (OSError, tomllib.TOMLDecodeError) as exc:
-            print(json.dumps({
-                "state": "unavailable", "ready": False,
-                "error": f"cannot read rendered CometBFT configuration: {exc}",
-            }))
-            raise SystemExit(0)
-
-        statesync = config.get("statesync", {})
-        if not isinstance(statesync, dict):
-            print(json.dumps({
-                "state": "unavailable", "ready": False,
-                "error": "cannot read rendered CometBFT configuration: invalid statesync section",
-            }))
-            raise SystemExit(0)
-        enabled = bool(statesync.get("enable"))
-        result = {"enabled": enabled, "state": "unsupported" if enabled else "disabled", "ready": False}
-        if enabled:
-            result["error"] = (
-                "P2P application state sync is disabled with unmodified upstream CometBFT. "
-                "Use ordinary replay or a verified full-node-store snapshot."
-            )
-        print(json.dumps(result))
-        PY
-      register: xian_health_statesync
-      changed_when: false
-      failed_when: false
-
-    - name: Require disabled rendered state sync
-      ansible.builtin.assert:
-        that:
-          - (xian_health_statesync.stdout | default('{}', true) | from_json).get('state') == 'disabled'
-        fail_msg: >-
-          {{ (xian_health_statesync.stdout | default('{}', true) | from_json).get(
-               'error', 'cannot read rendered CometBFT configuration for P2P state-sync validation') }}
 
     - name: Read remote disk health summary
       ansible.builtin.shell: |
@@ -266,14 +227,6 @@
                 enabled: "{{ xian_monitoring_enabled | bool }}"
                 url: "{{ xian_health_grafana_url }}"
                 error: "{{ xian_health_grafana.msg | default('') if (xian_health_grafana is defined and (xian_health_grafana.failed | default(false))) else '' }}"
-            statesync:
-              ok: >-
-                {{
-                  (xian_health_statesync.stdout | from_json).state == 'disabled'
-                  if (xian_health_statesync.stdout | default('') | length) > 0
-                  else False
-                }}
-              detail: "{{ (xian_health_statesync.stdout | from_json) if (xian_health_statesync.stdout | default('') | length) > 0 else {'state': 'unavailable'} }}"
             disk:
               ok: >-
                 {{

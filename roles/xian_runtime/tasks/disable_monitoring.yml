@@ -1,0 +1,56 @@
+---
+- name: Inspect existing monitoring Compose file
+  ansible.builtin.stat:
+    path: "{{ xian_monitoring_compose_path }}"
+  register: xian_existing_monitoring_compose
+
+- name: Find previous monitoring containers
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - -p
+      - "{{ xian_project_name }}"
+      - -f
+      - "{{ xian_main_compose_path }}"
+      - -f
+      - "{{ xian_monitoring_compose_path }}"
+      - ps
+      - --all
+      - --quiet
+      - prometheus
+      - grafana
+      - node-exporter
+  register: xian_existing_monitoring_containers
+  changed_when: false
+  when: xian_existing_monitoring_compose.stat.exists
+
+# Upgrade the restart policy on existing containers before stopping them.
+# Retaining the containers preserves Prometheus's anonymous data volume.
+- name: Keep disabled monitoring containers stopped across Docker restarts
+  ansible.builtin.command:
+    argv: >-
+      {{ ['docker', 'update', '--restart=unless-stopped'] + xian_existing_monitoring_containers.stdout_lines }}
+  when: (xian_existing_monitoring_containers.stdout_lines | default([])) | length > 0
+
+- name: Stop previous monitoring containers and retain their data mounts
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - -p
+      - "{{ xian_project_name }}"
+      - -f
+      - "{{ xian_main_compose_path }}"
+      - -f
+      - "{{ xian_monitoring_compose_path }}"
+      - stop
+      - prometheus
+      - grafana
+      - node-exporter
+  when: (xian_existing_monitoring_containers.stdout_lines | default([])) | length > 0
+
+- name: Remove disabled monitoring Compose file
+  ansible.builtin.file:
+    path: "{{ xian_monitoring_compose_path }}"
+    state: absent

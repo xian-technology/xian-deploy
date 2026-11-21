@@ -46,7 +46,6 @@ def canonical_profile(**overrides) -> dict:
         "services": {"bds": {"enabled": False}, "dashboard": {}, "monitoring": {}},
         "advanced": {
             "cometbft": {},
-            "statesync": {},
             "metrics": {},
             "pending_nonce": {},
         },
@@ -62,6 +61,7 @@ def run_play(
     tasks: list[dict],
     profile: dict | None = None,
     manifest: dict | None = None,
+    extra_vars: dict | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Load the node profile role, then run ``tasks`` on localhost."""
 
@@ -95,8 +95,11 @@ def run_play(
         "ANSIBLE_INVENTORY_UNPARSED_WARNING": "False",
         "ANSIBLE_NOCOLOR": "1",
     }
+    command = [sys.executable, "-m", "ansible.cli.playbook", "-i", "localhost,"]
+    if extra_vars is not None:
+        command.extend(("--extra-vars", json.dumps(extra_vars)))
     return subprocess.run(
-        [sys.executable, "-m", "ansible.cli.playbook", "-i", "localhost,", str(playbook)],
+        [*command, str(playbook)],
         cwd=REPO_ROOT,
         env=environment,
         capture_output=True,
