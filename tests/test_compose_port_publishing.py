@@ -65,7 +65,7 @@ class ComposePortPublishingTest(unittest.TestCase):
         ):
             self.assertIn(expected, monitoring_template)
 
-        self.assertGreaterEqual(len(re.findall(r"^\s+- target:", main_template, re.MULTILINE)), 8)
+        self.assertEqual(len(re.findall(r"^\s+- target:", main_template, re.MULTILINE)), 5)
         self.assertEqual(
             len(re.findall(r"^\s+- target:", monitoring_template, re.MULTILINE)),
             2,
@@ -79,9 +79,8 @@ class ComposePortPublishingTest(unittest.TestCase):
         targets = re.findall(
             r"- target: (.+)\n\s+published: \{\{ \(xian_app_metrics_port", compose
         )
-        self.assertEqual(targets, ["{{ xian_app_metrics_container_port }}"] * 2)
+        self.assertEqual(targets, ["{{ xian_app_metrics_container_port }}"])
         self.assertIn("- abci:{{ xian_app_metrics_container_port }}", prometheus)
-        self.assertIn("- abci-app:{{ xian_app_metrics_container_port }}", prometheus)
         self.assertNotIn("xian_metrics_port", compose + prometheus)
 
     def test_monitoring_loopback_validation_normalizes_ipv6_hosts(self) -> None:

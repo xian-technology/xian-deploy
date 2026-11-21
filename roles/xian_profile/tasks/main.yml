@@ -42,7 +42,6 @@
       - "(xian_profile.get('advanced') | default({}, true)).get('pending_nonce', {}) is mapping"
       - "xian_profile.get('node_image_mode') == 'registry'"
       - "(xian_profile.get('node_integrated_image') | default('', true) | length) > 0"
-      - "(xian_profile.get('node_split_image') | default('', true) | length) > 0"
       - "xian_profile.get('block_policy_mode') in ['on_demand', 'idle_interval', 'periodic']"
       - "xian_profile.get('operator_profile') in ['local_development', 'shared_network']"
     fail_msg: >-
@@ -86,7 +85,6 @@
       - validator_key_ref
       - node_image_mode
       - node_integrated_image
-      - node_split_image
       - node_release_manifest
       - stack_dir
       - p2p
@@ -234,7 +232,6 @@
     xian_moniker: "{{ xian_profile.get('moniker') }}"
     xian_operator_profile: "{{ xian_profile.get('operator_profile') | default('', true) }}"
     xian_node_image_integrated: "{{ xian_profile.get('node_integrated_image') }}"
-    xian_node_image_split: "{{ xian_profile.get('node_split_image') }}"
     xian_p2p_seeds: "{{ xian_profile_p2p.get('seeds', []) }}"
     xian_p2p_persistent_peers: "{{ xian_profile_p2p.get('persistent_peers', []) }}"
     xian_bds_enabled: "{{ xian_profile_bds.get('enabled', false) | bool }}"
@@ -481,7 +478,6 @@
       }}
   ansible.builtin.assert:
     that:
-      - "xian_deploy_topology in ['integrated', 'fidelity']"
       - "not (xian_bds_enabled | bool) or (xian_bds_dsn | length > 0) or ((xian_bds_host | length > 0) and (xian_bds_database | length > 0) and (xian_bds_user | length > 0))"
       - "not (xian_bds_enabled | bool) or (xian_bds_password | length > 0)"
       - "not (xian_bds_enabled | bool) or ((xian_bds_password | lower) not in xian_weak_bds_passwords)"
@@ -513,7 +509,7 @@
     fail_msg: >-
       The node profile produced an invalid remote runtime. Check the profile
       services, advanced state-sync settings, BDS deployment bindings,
-      validator key material, and xian_deploy_topology. BDS deployments must
+      and validator key material. BDS deployments must
       provide a non-empty password that is not a weak example value. Public
       monitoring binds require xian_public_monitoring_enabled=true and
       xian_monitoring_public_auth_confirmed=true. Shared-network or otherwise

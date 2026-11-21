@@ -16,20 +16,12 @@ scrape_configs:
   - job_name: xian_abci
     static_configs:
       - targets:
-{% if xian_deploy_topology == "integrated" %}
           - abci:{{ xian_app_metrics_container_port }}
-{% else %}
-          - abci-app:{{ xian_app_metrics_container_port }}
-{% endif %}
 
   - job_name: xian_cometbft
     static_configs:
       - targets:
-{% if xian_deploy_topology == "integrated" %}
           - abci:26660
-{% else %}
-          - cometbft:26660
-{% endif %}
 
   - job_name: xian_node
     static_configs:

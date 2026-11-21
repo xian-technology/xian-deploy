@@ -1,6 +1,5 @@
 ---
 xian_project_name: xian
-xian_deploy_topology: integrated
 
 # Remote root path. The xian_profile role derives runtime, node-home, BDS, and
 # monitoring paths from this by default; override those derived vars only when
@@ -78,10 +77,6 @@ xian_node_exporter_image: prom/node-exporter:v1.12.1
 
 xian_integrated_memory_limit: 2048m
 xian_integrated_memory_reservation: 1024m
-xian_fidelity_abci_memory_limit: 1536m
-xian_fidelity_abci_memory_reservation: 768m
-xian_fidelity_cometbft_memory_limit: 768m
-xian_fidelity_cometbft_memory_reservation: 256m
 xian_dashboard_memory_limit: 512m
 xian_dashboard_memory_reservation: 256m
 xian_postgres_memory_limit: 1024m

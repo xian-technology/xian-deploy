@@ -11,9 +11,8 @@
     that:
       - xian_profile is defined
       - xian_profile is mapping
-      - xian_deploy_topology in ["integrated", "fidelity"]
       - xian_runtime_action in ["deploy", "stop", "restart", "status"]
-    fail_msg: Run the xian_profile role before xian_runtime and set a valid xian_deploy_topology/runtime action.
+    fail_msg: Run the xian_profile role before xian_runtime and set a valid runtime action.
 
 - name: Resolve BDS RPC URL
   ansible.builtin.set_fact:
@@ -23,23 +22,13 @@
         else (
           xian_bds_rpc_url
           if (xian_bds_rpc_url | length > 0)
-          else (
-            'http://127.0.0.1:26657'
-            if xian_deploy_topology == 'integrated'
-            else 'http://cometbft:26657'
-          )
+          else 'http://127.0.0.1:26657'
         )
       }}
 
 - name: Select node images
   ansible.builtin.set_fact:
-    xian_primary_image: >-
-      {{
-        xian_node_image_integrated
-        if xian_deploy_topology == "integrated"
-        else xian_node_image_split
-      }}
-    xian_dashboard_image: "{{ xian_node_image_split }}"
+    xian_primary_image: "{{ xian_node_image_integrated }}"
     xian_main_compose_path: "{{ xian_runtime_dir }}/docker-compose.yml"
     xian_monitoring_compose_path: "{{ xian_runtime_dir }}/docker-compose.monitoring.yml"
     xian_prometheus_config_path: "{{ xian_monitoring_dir }}/prometheus.yml"

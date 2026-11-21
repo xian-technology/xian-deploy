@@ -6,7 +6,7 @@ This file maps the current profile-driven deploy architecture onto
 `xian-deploy` does not define runtime presets. Each host points at the node
 profile it should run with `xian_node_profile`; inventory only supplies deploy
 bindings such as host paths, published ports, database credentials, resource
-limits, and `xian_deploy_topology`.
+and limits.
 
 ## Inventory Shapes
 

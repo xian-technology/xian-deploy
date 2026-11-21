@@ -10,7 +10,7 @@ Required inventory variable:
 The profile is the source of truth for node runtime intent: services, block
 policy, pruning, logging, metrics, state sync, P2P peers, snapshots, and node
 images. Inventory still owns deployment bindings such as remote paths, host
-port publishing, topology, and secrets.
+port publishing and secrets.
 
 Optional `xian_network_manifest` points at the network manifest used by
 `xian node init`. It is required when deploy builds a bundle genesis and then

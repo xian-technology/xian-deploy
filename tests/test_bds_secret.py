@@ -28,10 +28,10 @@ def bds_profile() -> dict:
 
 @requires_ansible
 class BdsSecretTest(PlaybookTestCase):
-    def render_compose(self, topology: str) -> dict:
+    def render_compose(self) -> dict:
         import yaml  # ansible-core depends on PyYAML
 
-        compose = self.workdir / f"compose-{topology}.yml"
+        compose = self.workdir / "compose.yml"
         inventory = yaml.safe_load(
             (REPO_ROOT / "inventories/example/group_vars/all/main.yml").read_text(encoding="utf-8")
         )
@@ -43,7 +43,6 @@ class BdsSecretTest(PlaybookTestCase):
                 **inventory,
                 "xian_bds_password": PASSWORD,
                 "xian_bds_data_dir": str(self.workdir / "postgres"),
-                "xian_deploy_topology": topology,
             },
             tasks=[
                 {
@@ -65,9 +64,9 @@ class BdsSecretTest(PlaybookTestCase):
         return yaml.safe_load(compose.read_text(encoding="utf-8"))
 
     def test_node_and_postgres_read_the_same_secret_file(self) -> None:
-        for topology, node_service in (("integrated", "abci"), ("fidelity", "abci-app")):
-            with self.subTest(topology=topology):
-                services = self.render_compose(topology)["services"]
+        for node_service in ("abci",):
+            with self.subTest(node_service=node_service):
+                services = self.render_compose()["services"]
 
                 self.assertEqual(services[node_service]["secrets"], ["xian_bds_password"])
                 self.assertNotIn("env_file", services[node_service])

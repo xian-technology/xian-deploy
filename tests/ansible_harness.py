@@ -40,7 +40,6 @@ def canonical_profile(**overrides) -> dict:
         "moniker": "validator-1",
         "node_image_mode": "registry",
         "node_integrated_image": "registry.example/xian-node@sha256:" + "a" * 64,
-        "node_split_image": "registry.example/xian-node-split@sha256:" + "b" * 64,
         "p2p": {"seeds": [], "persistent_peers": []},
         "block_policy_mode": "on_demand",
         "operator_profile": "local_development",

@@ -20,7 +20,6 @@ secrets:
 
 {% endif %}
 services:
-{% if xian_deploy_topology == "integrated" %}
   abci:
     logging: *x-logging
     image: {{ xian_node_image_integrated | to_json }}
@@ -70,7 +69,7 @@ services:
 
   dashboard:
     logging: *x-logging
-    image: {{ xian_dashboard_image | to_json }}
+    image: {{ xian_node_image_integrated | to_json }}
     restart: always
     init: true
     stop_grace_period: 30s
@@ -80,7 +79,9 @@ services:
     depends_on:
       abci:
         condition: service_started
-    command:
+    # The node image starts the s6 supervisor by default; the dashboard is a
+    # single process, so it runs directly.
+    entrypoint:
       [
         "xian-dashboard",
         "--host",
@@ -97,102 +98,6 @@ services:
         published: {{ (xian_dashboard_port | string) | to_json }}
         host_ip: {{ (xian_dashboard_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
         protocol: tcp
-{% endif %}
-{% else %}
-  abci-app:
-    logging: *x-logging
-    image: {{ xian_node_image_split | to_json }}
-    restart: always
-    init: true
-    stop_grace_period: 45s
-    hostname: {{ xian_project_name }}-abci
-    mem_limit: {{ xian_fidelity_abci_memory_limit | to_json }}
-    mem_reservation: {{ xian_fidelity_abci_memory_reservation | to_json }}
-    volumes:
-      - {{ (xian_cometbft_home ~ ':/root/.cometbft') | to_json }}
-{% if xian_bds_enabled %}
-      - {{ (xian_bds_spool_dir ~ ':' ~ xian_bds_spool_dir) | to_json }}
-{% endif %}
-    environment:
-      XIAN_CONFIGS_DIR: /opt/xian-configs
-      XIAN_PERF_ENABLED: {{ (1 if xian_perf_enabled else 0) | to_json }}
-      XIAN_PERF_RECENT_BLOCKS: {{ xian_perf_recent_blocks | to_json }}
-      XIAN_PERF_OUTPUT_PATH: /root/.cometbft/xian-perf.json
-{% if xian_bds_enabled %}
-    secrets:
-      - xian_bds_password
-{% endif %}
-    command: ["xian-abci"]
-    networks:
-      - xian-net
-{% if xian_bds_enabled %}
-      - xian-db
-{% endif %}
-    ports:
-      - target: {{ xian_app_metrics_container_port }}
-        published: {{ (xian_app_metrics_port | string) | to_json }}
-        host_ip: {{ (xian_app_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
-        protocol: tcp
-
-  cometbft:
-    logging: *x-logging
-    image: {{ xian_node_image_split | to_json }}
-    restart: always
-    init: true
-    stop_grace_period: 45s
-    hostname: {{ xian_project_name }}-cometbft
-    mem_limit: {{ xian_fidelity_cometbft_memory_limit | to_json }}
-    mem_reservation: {{ xian_fidelity_cometbft_memory_reservation | to_json }}
-    volumes:
-      - {{ (xian_cometbft_home ~ ':/root/.cometbft') | to_json }}
-    command: ["cometbft", "node", "--rpc.laddr", "tcp://0.0.0.0:26657"]
-    networks:
-      - xian-net
-    ports:
-      - target: 26657
-        published: {{ (xian_rpc_port | string) | to_json }}
-        host_ip: {{ (xian_rpc_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
-        protocol: tcp
-      - target: 26656
-        published: {{ (xian_p2p_port | string) | to_json }}
-        host_ip: {{ (xian_p2p_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
-        protocol: tcp
-      - target: 26660
-        published: {{ (xian_comet_metrics_port | string) | to_json }}
-        host_ip: {{ (xian_comet_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
-        protocol: tcp
-{% if xian_dashboard_enabled %}
-
-  dashboard:
-    logging: *x-logging
-    image: {{ xian_dashboard_image | to_json }}
-    restart: always
-    init: true
-    stop_grace_period: 30s
-    hostname: {{ xian_project_name }}-dashboard
-    mem_limit: {{ xian_dashboard_memory_limit | to_json }}
-    mem_reservation: {{ xian_dashboard_memory_reservation | to_json }}
-    depends_on:
-      cometbft:
-        condition: service_started
-    command:
-      [
-        "xian-dashboard",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8080",
-        "--rpc-url",
-        "http://cometbft:26657"
-      ]
-    networks:
-      - xian-net
-    ports:
-      - target: 8080
-        published: {{ (xian_dashboard_port | string) | to_json }}
-        host_ip: {{ (xian_dashboard_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
-        protocol: tcp
-{% endif %}
 {% endif %}
 {% if xian_bds_enabled %}
 

@@ -104,7 +104,7 @@ ansible-playbook playbooks/health.yml
 
 What it checks:
 
-- expected running containers for `xian_deploy_topology` and the loaded node
+- expected running containers for the loaded node
   profile
 - RPC reachability and current sync status
 - Xian metrics

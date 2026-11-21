@@ -16,7 +16,7 @@ Main areas:
 Boundary:
 
 - node profiles are the source of truth for runtime intent
-- inventory owns host bindings: paths, ports, secrets, resource limits, and `xian_deploy_topology`
+- inventory owns host bindings: paths, ports, secrets and resource limits
 - deploy playbooks must not re-declare service posture that is already present in a node profile
 - stack-local services such as IntentKit, DEX automation, and shielded relayer
   must be disabled until `xian-deploy` has explicit support for them

@@ -48,7 +48,7 @@ That flow assumes:
   runtime intent: enabled services, block policy, monitoring posture, state
   sync, metrics, P2P peers, snapshots, and node images.
 - **Inventory for deploy bindings.** Inventory owns host paths, published
-  ports, secrets, resource limits, and the Compose topology. The example
+  ports, secrets and resource limits. The example
   inventory sets `xian_deploy_root`; derived paths come from role defaults
   unless a private inventory deliberately overrides them. Inventory should not
   duplicate profile runtime settings.

@@ -4,13 +4,13 @@ This role owns the remote Xian node runtime deployment on a target host.
 
 It is responsible for:
 
-- materializing the chosen topology on the host
+- materializing the node's Compose stack on the host
 - applying the runtime facts derived from the canonical node profile
 - starting and updating the released containers
 - exposing the same node-local runtime settings that `xian-configure-node`
   writes, including logging, simulation, pending nonce, BDS, metrics, and state
   sync controls
-- deriving the BDS catch-up RPC URL from the selected topology when
+- defaulting the BDS catch-up RPC URL to the node-local RPC when
   `xian_bds_rpc_url` is left empty
 - rendering the BDS password and validator-key material into `0600` files
   under `xian_runtime_secret_dir` and keeping those values out of rendered

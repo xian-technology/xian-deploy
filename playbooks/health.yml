@@ -12,7 +12,7 @@
       http://127.0.0.1:{{ xian_rpc_port }}/abci_query?path=%22%2Fbds_status%22
     xian_health_expected_services: >-
       {{
-        (['abci'] if xian_deploy_topology == 'integrated' else ['abci-app', 'cometbft'])
+        ['abci']
         + (['dashboard'] if xian_dashboard_enabled | bool else [])
         + (['postgres'] if xian_bds_enabled | bool else [])
         + (['prometheus', 'grafana', 'node-exporter'] if xian_monitoring_enabled | bool else [])
@@ -222,7 +222,6 @@
               or ((xian_health_disk.stdout | default('') | length > 0) and (((xian_health_disk.stdout | from_json).alerts | default([])) | length > 0))
             ) %}
             {% if not backend_ok or not rpc_ok %}stopped{% elif degraded %}degraded{% else %}healthy{% endif %}
-          topology: "{{ xian_deploy_topology }}"
           expected_services: "{{ xian_health_expected_services }}"
           running_services: "{{ xian_running_services }}"
           effective_snapshot_bootstrap:

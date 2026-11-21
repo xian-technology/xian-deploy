@@ -6,12 +6,7 @@
   max_fail_percentage: 0
   vars:
     xian_network_snapshot_script_path: "{{ xian_runtime_dir }}/restore-network-snapshot.py"
-    xian_restore_image: >-
-      {{
-        xian_node_image_integrated
-        if xian_deploy_topology == "integrated"
-        else xian_node_image_split
-      }}
+    xian_restore_image: "{{ xian_node_image_integrated }}"
   pre_tasks:
     - name: Load node profile
       ansible.builtin.include_role:

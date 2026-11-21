@@ -94,23 +94,19 @@ class MonitoringTemplatesTest(PlaybookTestCase):
             load_yaml(rules), {"groups": [{"name": "xian_monitoring_none", "rules": []}]}
         )
 
-    def test_prometheus_scrapes_node_exporter_in_both_topologies(self) -> None:
-        for topology in ("integrated", "fidelity"):
-            with self.subTest(topology=topology):
-                config = self.render(
-                    "prometheus.yml.j2", canonical_profile(), xian_deploy_topology=topology
-                )
-                self.promtool("check", "config", "--syntax-only", config.name)
-                jobs = {job["job_name"]: job for job in load_yaml(config)["scrape_configs"]}
-                self.assertEqual(
-                    jobs["xian_node"]["static_configs"], [{"targets": ["node-exporter:9100"]}]
-                )
+    def test_prometheus_scrapes_the_node_and_node_exporter(self) -> None:
+        config = self.render("prometheus.yml.j2", canonical_profile())
+        self.promtool("check", "config", "--syntax-only", config.name)
+        jobs = {job["job_name"]: job for job in load_yaml(config)["scrape_configs"]}
+        self.assertEqual(
+            jobs["xian_node"]["static_configs"], [{"targets": ["node-exporter:9100"]}]
+        )
+        self.assertEqual(jobs["xian_cometbft"]["static_configs"], [{"targets": ["abci:26660"]}])
 
     def test_alertmanager_targets_render_the_alerting_section(self) -> None:
         config = self.render(
             "prometheus.yml.j2",
             canonical_profile(),
-            xian_deploy_topology="integrated",
             xian_alertmanager_targets=["alertmanager.ops.internal:9093"],
         )
 
@@ -137,7 +133,7 @@ class MonitoringTemplatesTest(PlaybookTestCase):
                 self.assertPlayFailed(result, "xian_alertmanager_targets must be a list")
 
     def test_no_alertmanager_by_default(self) -> None:
-        config = self.render("prometheus.yml.j2", canonical_profile(), xian_deploy_topology="fidelity")
+        config = self.render("prometheus.yml.j2", canonical_profile())
 
         self.assertNotIn("alerting", load_yaml(config))
 

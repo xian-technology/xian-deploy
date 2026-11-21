@@ -13,7 +13,6 @@ xian_bds_data_dir: "{{ xian_deploy_root }}/bds/postgres"
 xian_bds_spool_dir: "{{ xian_deploy_root }}/bds/spool"
 xian_monitoring_dir: "{{ xian_runtime_dir }}/monitoring"
 
-xian_deploy_topology: integrated
 
 xian_discover_seeds: []
 xian_genesis_source: ""
