@@ -3,7 +3,7 @@
 ## Scope
 - `xian-deploy` owns Linux-focused deployment playbooks for released Xian node images.
 - This repo should deploy released artifacts, not clone and build Xian source on remote hosts.
-- Keep it aligned with the published `xian-node` and `xian-node-split` images from `xian-stack`.
+- Keep it aligned with the published `xian-node` image from `xian-stack`.
 
 ## Shared Convention
 - Follow the shared repo convention in `xian-meta/docs/REPO_CONVENTIONS.md`.
