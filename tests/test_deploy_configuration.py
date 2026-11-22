@@ -94,6 +94,17 @@ class PreparedHomeArgumentsTest(PlaybookTestCase):
 
 @requires_ansible
 class NodeConfigurationTest(PlaybookTestCase):
+    def test_profile_schema_version_requires_an_integer(self) -> None:
+        for version in (True, 1.0, "1"):
+            with self.subTest(version=version):
+                result = run_play(
+                    self.workdir,
+                    variables={},
+                    tasks=[],
+                    profile=canonical_profile(schema_version=version),
+                )
+                self.assertPlayFailed(result, "Provide a schema v1")
+
     def test_profile_fee_settings_are_rejected(self) -> None:
         profile = canonical_profile(tx_fee_mode="free_metered")
         result, _ = render_configure_wrapper(self.workdir, profile=profile)

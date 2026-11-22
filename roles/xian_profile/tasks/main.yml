@@ -17,7 +17,8 @@
   ansible.builtin.assert:
     that:
       - "xian_profile is mapping"
-      - "(xian_profile.get('schema_version') | int) == 1"
+      - "xian_profile.get('schema_version') is integer"
+      - "xian_profile.get('schema_version') == 1"
       - "xian_profile.get('name') is string"
       - "xian_profile.get('network') is string"
       - "xian_profile.get('moniker') is string"
