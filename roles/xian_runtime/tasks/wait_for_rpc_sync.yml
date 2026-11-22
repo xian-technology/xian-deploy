@@ -9,7 +9,7 @@
   register: xian_upgrade_rpc_status
   until: >-
     (xian_upgrade_rpc_status.status | default(0)) == 200
-    and not (xian_upgrade_rpc_status.json.result.sync_info.catching_up | default(true) | bool)
+    and (xian_upgrade_rpc_status.json.result.sync_info.catching_up | default(none)) is sameas false
   retries: >-
     {{
       [1, ((xian_upgrade_health_timeout_seconds | int) / (xian_upgrade_health_poll_seconds | int))

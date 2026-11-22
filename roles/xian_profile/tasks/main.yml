@@ -274,27 +274,19 @@
 - name: Derive the address health checks probe app metrics on
   vars:
     xian_app_metrics_probe_host: "{{ xian_app_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1') | lower }}"
-    # Wildcard and loopback binds are reachable on 127.0.0.1; a specific
-    # address only on itself.
-    xian_app_metrics_local_hosts:
-      - ""
-      - "0.0.0.0"
-      - "::"
-      - "0:0:0:0:0:0:0:0"
-      - "127.0.0.1"
-      - "localhost"
-      - "::1"
-      - "0:0:0:0:0:0:0:1"
-      - "0000:0000:0000:0000:0000:0000:0000:0001"
-      - "ip6-localhost"
-      - "ip6-loopback"
-      - "localhost6"
+    # Probe wildcard binds on the corresponding address family's loopback.
+    xian_app_metrics_probe_hosts:
+      "": "127.0.0.1"
+      "0.0.0.0": "127.0.0.1"
+      "localhost": "127.0.0.1"
+      "::": "::1"
+      "0:0:0:0:0:0:0:0": "::1"
+    xian_app_metrics_probe_address: "{{ xian_app_metrics_probe_hosts.get(xian_app_metrics_probe_host, xian_app_metrics_probe_host) }}"
   ansible.builtin.set_fact:
     xian_app_metrics_probe_url: >-
       http://{{
-        '127.0.0.1' if xian_app_metrics_probe_host in xian_app_metrics_local_hosts
-        else ('[' ~ xian_app_metrics_probe_host ~ ']' if ':' in xian_app_metrics_probe_host
-        else xian_app_metrics_probe_host)
+        '[' ~ xian_app_metrics_probe_address ~ ']' if ':' in xian_app_metrics_probe_address
+        else xian_app_metrics_probe_address
       }}:{{ xian_app_metrics_port }}/metrics
 
 - name: Derive remote runtime settings from node profile

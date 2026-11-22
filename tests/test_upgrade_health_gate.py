@@ -77,6 +77,12 @@ class UpgradeHealthGateTest(PlaybookTestCase):
         self.assertPlayFailed(result, "Wait for node RPC to answer and finish catching up")
         self.assertIn("FAILED - RETRYING", result.stdout)
 
+    def test_gate_rejects_a_numerical_catch_up_status(self) -> None:
+        result = self.gate([{"result": {"sync_info": {"catching_up": 0}}}])
+
+        self.assertPlayFailed(result, "Wait for node RPC to answer and finish catching up")
+        self.assertIn("FAILED - RETRYING", result.stdout)
+
     def test_gate_fails_when_rpc_never_answers(self) -> None:
         result = self.gate([None], url="http://127.0.0.1:9/status")
 
