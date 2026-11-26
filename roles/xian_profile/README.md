@@ -48,5 +48,5 @@ By default, remote runtime paths are derived from `xian_deploy_root`:
 `xian_bds_spool_dir`, and `xian_monitoring_dir`. Private inventories should
 set only `xian_deploy_root` unless a host needs a non-standard path layout.
 
-Remote deployment requires `node_image_mode=registry` with both node image
-references present in the profile.
+Remote deployment requires `node_image_mode=registry` and a
+`node_integrated_image` reference in the profile.
