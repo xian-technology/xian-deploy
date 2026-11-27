@@ -10,7 +10,7 @@ It is responsible for:
 - verifying and installing the pinned Stack monitoring bundle for enabled
   profiles, then applying target bindings and alert policy
 - exposing the same node-local runtime settings that `xian-configure-node`
-  writes, including logging, simulation, pending nonce, BDS, metrics, and state
+  writes, including logging, simulation, BDS, metrics, and state
   sync controls
 - defaulting the BDS catch-up RPC URL to the node-local RPC when
   `xian_bds_rpc_url` is left empty

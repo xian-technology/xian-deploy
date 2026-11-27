@@ -132,7 +132,7 @@ class NodeConfigurationTest(PlaybookTestCase):
 
     def test_profile_external_address_is_passed_to_configure(self) -> None:
         def advanced(cometbft: dict) -> dict:
-            return {"cometbft": cometbft, "metrics": {}, "pending_nonce": {}}
+            return {"cometbft": cometbft, "metrics": {}}
 
         cases = (
             ("unset", canonical_profile(), [""]),
@@ -152,7 +152,7 @@ class NodeConfigurationTest(PlaybookTestCase):
 
     def test_unknown_advanced_profile_keys_are_rejected(self) -> None:
         profile = canonical_profile(
-            advanced={"cometbft": {}, "metrics": {}, "pending_nonce": {}, "typo": {}}
+            advanced={"cometbft": {}, "metrics": {}, "typo": {}}
         )
         result, _ = render_configure_wrapper(self.workdir, profile=profile)
         self.assertPlayFailed(result, "Fix unknown")

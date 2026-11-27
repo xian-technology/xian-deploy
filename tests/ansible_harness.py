@@ -47,7 +47,6 @@ def canonical_profile(**overrides) -> dict:
         "advanced": {
             "cometbft": {},
             "metrics": {},
-            "pending_nonce": {},
         },
     }
     profile.update(overrides)
