@@ -37,8 +37,6 @@
       - "(xian_profile.get('advanced') | default({}, true)).get('cometbft', {}) is mapping"
       - "'metrics' in (xian_profile.get('advanced') | default({}, true))"
       - "(xian_profile.get('advanced') | default({}, true)).get('metrics', {}) is mapping"
-      - "'pending_nonce' in (xian_profile.get('advanced') | default({}, true))"
-      - "(xian_profile.get('advanced') | default({}, true)).get('pending_nonce', {}) is mapping"
       - "xian_profile.get('node_image_mode') == 'registry'"
       - "(xian_profile.get('node_integrated_image') | default('', true) | length) > 0"
       - "xian_profile.get('block_policy_mode') in ['on_demand', 'idle_interval', 'periodic']"
@@ -86,7 +84,6 @@
     xian_profile_monitoring: "{{ xian_profile_services.get('monitoring', {}) }}"
     xian_profile_cometbft: "{{ xian_profile_advanced.get('cometbft', {}) }}"
     xian_profile_metrics: "{{ xian_profile_advanced.get('metrics', {}) }}"
-    xian_profile_pending_nonce: "{{ xian_profile_advanced.get('pending_nonce', {}) }}"
 
 - name: Reject unknown node profile keys
   vars:
@@ -204,9 +201,6 @@
       - host
       - port
       - bds_refresh_seconds
-    xian_profile_allowed_pending_nonce_keys:
-      - reservation_ttl_seconds
-      - max_per_sender
   ansible.builtin.assert:
     that:
       - "(xian_profile_p2p.keys() | list | difference(xian_profile_allowed_p2p_keys) | length) == 0"
@@ -219,7 +213,6 @@
       - "(xian_profile_advanced.keys() | list | difference(xian_profile_allowed_advanced_keys) | length) == 0"
       - "((xian_profile_cometbft | default({}, true)).keys() | list | difference(xian_profile_allowed_cometbft_keys) | length) == 0"
       - "((xian_profile_metrics | default({}, true)).keys() | list | difference(xian_profile_allowed_metrics_keys) | length) == 0"
-      - "((xian_profile_pending_nonce | default({}, true)).keys() | list | difference(xian_profile_allowed_pending_nonce_keys) | length) == 0"
       - "not ((xian_profile_services.get('intentkit', {}).get('enabled', false) | bool) or (xian_profile_services.get('dex_automation', {}).get('enabled', false) | bool) or (xian_profile_services.get('shielded_relayer', {}).get('enabled', false) | bool))"
       - "(xian_profile_bds.get('dsn') | default('', true) | length) == 0"
       - "(xian_profile_bds.get('host') | default('', true) | length) == 0"
@@ -262,8 +255,6 @@
     xian_simulation_timeout_ms: "{{ xian_profile.get('simulation_timeout_ms', 3000) | int }}"
     # Optional operator cap; empty leaves the chain's max_tx_chi in charge.
     xian_simulation_max_chi: "{{ xian_profile.get('simulation_max_chi') | default('', true) }}"
-    xian_pending_nonce_reservation_ttl_seconds: "{{ xian_profile_pending_nonce.get('reservation_ttl_seconds', 60.0) | float }}"
-    xian_max_pending_nonces_per_sender: "{{ xian_profile_pending_nonce.get('max_per_sender', 128) | int }}"
     xian_metrics_enabled: "{{ xian_profile_metrics.get('enabled', true) | bool }}"
     xian_app_metrics_bind_host: "{{ xian_profile_metrics.get('host', '127.0.0.1') }}"
     xian_app_metrics_port: "{{ xian_profile_metrics.get('port', 9108) | int }}"
