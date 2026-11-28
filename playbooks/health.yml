@@ -20,6 +20,19 @@
   roles:
     - xian_profile
   tasks:
+    - name: Check the installed private transport requirement
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: check_private_marker
+
+    - name: Verify the running private validator transport
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: private_transport
+      vars:
+        xian_private_check_mode: running
+      when: xian_private_validator_transport is defined
+
     - name: Validate installed CometBFT configuration
       ansible.builtin.include_role:
         name: xian_runtime
@@ -58,6 +71,19 @@
       register: xian_health_rpc
       changed_when: false
       failed_when: false
+      when: xian_private_validator_transport is not defined
+
+    - name: Probe RPC in the private validator namespace
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: probe_private_rpc
+      when: xian_private_validator_transport is defined
+
+    - name: Report private RPC status
+      ansible.builtin.set_fact:
+        xian_health_rpc: "{{ xian_private_rpc_status }}"
+        xian_health_rpc_status_url: "container:abci/127.0.0.1:26657/status"
+      when: xian_private_validator_transport is defined
 
     - name: Check Xian metrics endpoint
       ansible.builtin.uri:

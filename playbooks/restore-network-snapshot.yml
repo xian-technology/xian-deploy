@@ -17,6 +17,19 @@
         name: xian_profile
         tasks_from: network_snapshot
 
+    - name: Check the installed private transport requirement
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: check_private_marker
+
+    - name: Verify private transport and snapshot endpoint before stopping
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: private_transport
+      vars:
+        xian_runtime_action: restore
+      when: xian_private_validator_transport is defined
+
     - name: Verify the prepared node home before stopping for restore
       ansible.builtin.include_role:
         name: xian_runtime
@@ -46,6 +59,8 @@
     - name: Restore network snapshot into node home
       ansible.builtin.shell: >-
         docker run --rm
+        {% if xian_private_validator_transport is defined %}--network container:{{ xian_private_anchor_id }}
+        --cap-drop NET_RAW --cap-drop NET_ADMIN --cap-drop SYS_ADMIN --security-opt no-new-privileges:true{% endif %}
         --entrypoint python
         -v {{ xian_cometbft_home | quote }}:/root/.cometbft
         -v {{ (xian_network_snapshot_script_path ~ ':/tmp/restore-network-snapshot.py:ro') | quote }}

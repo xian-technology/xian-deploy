@@ -32,6 +32,14 @@
     xian_main_compose_path: "{{ xian_runtime_dir }}/docker-compose.yml"
     xian_monitoring_compose_path: "{{ xian_runtime_dir }}/docker-compose.monitoring.yml"
 
+- name: Check the private transport requirement
+  ansible.builtin.include_tasks: check_private_marker.yml
+  when: xian_runtime_action in ['deploy', 'restart']
+
+- name: Verify the private validator namespace
+  ansible.builtin.include_tasks: private_transport.yml
+  when: xian_runtime_action in ['deploy', 'restart'] and xian_private_validator_transport is defined
+
 - name: Check the installed node home before deploy or restart
   ansible.builtin.import_tasks: check_node_home.yml
   vars:
@@ -142,6 +150,7 @@
 - name: Configure remote node home
   ansible.builtin.shell: >-
     docker run --rm
+    {% if xian_private_validator_transport is defined %}--network none{% endif %}
     --entrypoint python
     -v {{ xian_cometbft_home | quote }}:/root/.cometbft
     -v {{ (xian_configure_node_wrapper_path ~ ':' ~ xian_container_configure_node_wrapper_path ~ ':ro') | quote }}
@@ -152,6 +161,17 @@
     {{ xian_container_configure_node_wrapper_path | quote }}
   no_log: true
   when: xian_runtime_action == "deploy"
+
+- name: Check private CometBFT parameters
+  ansible.builtin.include_tasks: check_private_comet.yml
+  when: xian_runtime_action in ['deploy', 'restart'] and xian_private_validator_transport is defined
+
+- name: Record the private transport requirement
+  ansible.builtin.copy:
+    dest: "{{ xian_runtime_dir }}/private-validator"
+    content: "WireGuard peer enrollment required\n"
+    mode: "0644"
+  when: xian_runtime_action == 'deploy' and xian_private_validator_transport is defined
 
 - name: Stop monitoring services from the previous deployment when disabled
   ansible.builtin.include_tasks: disable_monitoring.yml
@@ -197,6 +217,12 @@
     {% endif %}
     restart
   when: xian_runtime_action == "restart"
+
+- name: Verify the running private validator attachment
+  ansible.builtin.include_tasks: private_transport.yml
+  vars:
+    xian_private_check_mode: running
+  when: xian_runtime_action in ['deploy', 'restart'] and xian_private_validator_transport is defined
 
 - name: Show runtime status
   ansible.builtin.shell: >-

@@ -1,0 +1,31 @@
+---
+- name: Require a bare validator and independently provisioned static peers
+  ansible.builtin.assert:
+    that:
+      - xian_private_validator_transport is mapping
+      - not (xian_bds_enabled | bool or xian_dashboard_enabled | bool or xian_monitoring_enabled | bool)
+      - not (xian_metrics_enabled | bool or xian_cometbft_prometheus_enabled | bool)
+      - not (xian_public_rpc_enabled | bool or xian_public_monitoring_enabled | default(false) | bool)
+      - xian_discover_seeds | length == 0
+      - xian_p2p_seeds | length == 0
+      - xian_p2p_external_address | length == 0
+      - (xian_p2p_persistent_peers | sort) == (xian_private_validator_transport.peers | map(attribute='comet_peer') | sort)
+    fail_msg: Private validators require static enrolled peers, with discovery, public RPC, metrics and companion services disabled.
+
+- name: Verify the WireGuard-only namespace and pairwise preshared keys
+  ansible.builtin.command:
+    expand_argument_vars: false
+    argv:
+      - python3
+      - -Ic
+      - "{{ lookup('ansible.builtin.file', role_path ~ '/files/private_validator_transport.py', rstrip=false) }}"
+      - "{{ xian_private_check_mode | default({'restart': 'installed', 'restore': 'snapshot'}.get(xian_runtime_action, 'anchor')) }}"
+      - "{{ xian_private_validator_transport | to_json }}"
+      - "{{ xian_project_name }}"
+      - "{{ xian_snapshot_url | default('') }}"
+  register: xian_private_anchor_check
+  changed_when: false
+
+- name: Use the verified immutable anchor container ID
+  ansible.builtin.set_fact:
+    xian_private_anchor_id: "{{ xian_private_anchor_check.stdout | trim }}"

@@ -1,0 +1,11 @@
+---
+- name: Check the installed private transport marker
+  ansible.builtin.stat:
+    path: "{{ xian_runtime_dir }}/private-validator"
+  register: xian_private_marker
+
+- name: Require private inventory for a previously isolated validator
+  ansible.builtin.assert:
+    that: xian_private_validator_transport is defined
+    fail_msg: This runtime requires its private WireGuard validator inventory.
+  when: xian_private_marker.stat.exists

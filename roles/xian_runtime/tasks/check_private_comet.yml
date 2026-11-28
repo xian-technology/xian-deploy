@@ -1,0 +1,23 @@
+---
+- name: Verify installed private CometBFT transport before starting
+  ansible.builtin.command:
+    expand_argument_vars: false
+    argv:
+      - docker
+      - run
+      - --rm
+      - --network
+      - none
+      - --env
+      - XIAN_PRIVATE_VALIDATOR_RPC=1
+      - --entrypoint
+      - python
+      - --mount
+      - "type=bind,source={{ xian_cometbft_home }},target=/root/.cometbft,readonly"
+      - "{{ xian_node_image_integrated }}"
+      - -Ic
+      - "{{ lookup('ansible.builtin.file', role_path ~ '/files/private_validator_transport.py', rstrip=false) }}"
+      - comet
+      - "{{ xian_private_validator_transport | to_json }}"
+      - /root/.cometbft/config/config.toml
+  changed_when: false

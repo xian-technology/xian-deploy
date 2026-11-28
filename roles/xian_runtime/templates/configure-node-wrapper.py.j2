@@ -73,4 +73,18 @@ add("--persistent-peer", {{ peer | to_json }})
 add_secret_file("--validator-privkey", {{ xian_container_validator_private_key_hex_file | to_json }})
 {% endif %}
 
+{% if xian_private_validator_transport is defined %}
+from xian import toml_utils
+from xian.node_setup import write_toml
+
+result = main(args)
+if result == 0:
+    path = Path("/root/.cometbft/config/config.toml")
+    config = toml_utils.load(path)
+    config["p2p"].update(pex=False, seed_mode=False, addr_book_strict=False)
+    config["rpc"].update(unsafe=False, laddr="tcp://127.0.0.1:26657", grpc_laddr="", pprof_laddr="")
+    write_toml(path, config, overwrite=True)
+raise SystemExit(result)
+{% else %}
 raise SystemExit(main(args))
+{% endif %}

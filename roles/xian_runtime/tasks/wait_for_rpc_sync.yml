@@ -17,3 +17,10 @@
     }}
   delay: "{{ xian_upgrade_health_poll_seconds | int }}"
   changed_when: false
+  when: xian_private_validator_transport is not defined
+
+- name: Wait for the private node RPC to finish catching up
+  ansible.builtin.include_tasks: probe_private_rpc.yml
+  vars:
+    xian_private_probe_wait: true
+  when: xian_private_validator_transport is defined

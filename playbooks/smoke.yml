@@ -5,6 +5,19 @@
   roles:
     - xian_profile
   tasks:
+    - name: Check the installed private transport requirement
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: check_private_marker
+
+    - name: Verify the running private validator transport
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: private_transport
+      vars:
+        xian_private_check_mode: running
+      when: xian_private_validator_transport is defined
+
     - name: Show container status
       ansible.builtin.shell: >-
         docker compose
@@ -23,6 +36,19 @@
         return_content: true
       register: xian_rpc_status
       changed_when: false
+      when: xian_private_validator_transport is not defined
+
+    - name: Probe RPC in the private validator namespace
+      ansible.builtin.include_role:
+        name: xian_runtime
+        tasks_from: probe_private_rpc
+      when: xian_private_validator_transport is defined
+
+    - name: Require a healthy private RPC endpoint
+      ansible.builtin.set_fact:
+        xian_rpc_status: "{{ xian_private_rpc_status }}"
+      failed_when: xian_private_rpc_status.status != 200
+      when: xian_private_validator_transport is defined
 
     - name: Check Xian metrics endpoint
       ansible.builtin.uri:

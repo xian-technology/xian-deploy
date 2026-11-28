@@ -5,6 +5,7 @@ x-logging: &x-logging
     max-file: "{{ xian_docker_log_max_files | int }}"
     mode: blocking
 
+{% if xian_private_validator_transport is not defined %}
 networks:
   xian-net:
     internal: false
@@ -13,6 +14,7 @@ networks:
     internal: true
 {% endif %}
 
+{% endif %}
 {% if xian_bds_enabled %}
 secrets:
   xian_bds_password:
@@ -23,9 +25,16 @@ services:
   abci:
     logging: *x-logging
     image: {{ xian_node_image_integrated | to_json }}
+{% if xian_private_validator_transport is defined %}
+    network_mode: "container:{{ xian_private_anchor_id }}"
+    restart: "no"
+    security_opt: [no-new-privileges:true]
+    cap_drop: [NET_RAW, NET_ADMIN, SYS_ADMIN]
+{% else %}
     restart: always
-    stop_grace_period: 45s
     hostname: {{ xian_project_name }}-abci
+{% endif %}
+    stop_grace_period: 45s
     mem_limit: {{ xian_integrated_memory_limit | to_json }}
     mem_reservation: {{ xian_integrated_memory_reservation | to_json }}
     volumes:
@@ -34,6 +43,9 @@ services:
       - {{ (xian_bds_spool_dir ~ ':' ~ xian_bds_spool_dir) | to_json }}
 {% endif %}
     environment:
+{% if xian_private_validator_transport is defined %}
+      XIAN_PRIVATE_VALIDATOR_RPC: "1"
+{% endif %}
       XIAN_CONFIGS_DIR: /opt/xian-configs
       S6_VERBOSITY: {{ xian_s6_verbosity | to_json }}
       XIAN_PERF_ENABLED: {{ (1 if xian_perf_enabled else 0) | to_json }}
@@ -43,6 +55,7 @@ services:
     secrets:
       - xian_bds_password
 {% endif %}
+{% if xian_private_validator_transport is not defined %}
     networks:
       - xian-net
 {% if xian_bds_enabled %}
@@ -65,6 +78,7 @@ services:
         published: {{ (xian_app_metrics_port | string) | to_json }}
         host_ip: {{ (xian_app_metrics_bind_host | string | regex_replace('^\\[(.*)\\]$', '\\1')) | to_json }}
         protocol: tcp
+{% endif %}
 {% if xian_dashboard_enabled %}
 
   dashboard:

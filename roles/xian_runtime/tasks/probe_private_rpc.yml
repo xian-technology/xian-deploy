@@ -1,0 +1,39 @@
+---
+- name: Query loopback RPC inside the private validator
+  ansible.builtin.command:
+    expand_argument_vars: false
+    argv:
+      - docker
+      - compose
+      - -p
+      - "{{ xian_project_name }}"
+      - -f
+      - "{{ xian_runtime_dir }}/docker-compose.yml"
+      - exec
+      - -T
+      - abci
+      - python
+      - -Ic
+      - |
+        import http.client, json, sys
+        client = http.client.HTTPConnection("127.0.0.1", 26657, timeout=int(sys.argv[1]))
+        client.request("GET", "/status")
+        response = client.getresponse()
+        status = json.loads(response.read(1048576))
+        print(json.dumps({"json": status, "status": response.status}))
+        sys.exit(response.status != 200 or (sys.argv[2] == "wait" and status["result"]["sync_info"]["catching_up"] is not False))
+      - "{{ xian_upgrade_rpc_request_timeout_seconds | default(5) | string }}"
+      - "{{ 'wait' if xian_private_probe_wait | default(false) else 'check' }}"
+  register: xian_private_rpc_command
+  changed_when: false
+  failed_when: false
+  until: (not (xian_private_probe_wait | default(false))) or xian_private_rpc_command.rc == 0
+  retries: "{{ [1, ((xian_upgrade_health_timeout_seconds | int) / (xian_upgrade_health_poll_seconds | int)) | round(0, 'ceil') | int] | max if xian_private_probe_wait | default(false) else 1 }}"
+  delay: "{{ xian_upgrade_health_poll_seconds | default(1) | int }}"
+
+- name: Collect the private RPC probe result
+  ansible.builtin.set_fact:
+    xian_private_rpc_status: >-
+      {{ (xian_private_rpc_command.stdout | from_json)
+         if xian_private_rpc_command.rc == 0
+         else {'status': 0, 'json': {}, 'failed': true, 'msg': 'Private validator RPC unavailable'} }}
