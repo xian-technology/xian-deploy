@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: xian-technology/xian-stack
-          ref: 07c4393d2ae306dd774d431116c2391238f5827c
+          ref: 44e329927fb8f96d85b225f99d349cc76e82aba2
           path: xian-stack
 
       - name: Setup Python
@@ -50,8 +50,10 @@ jobs:
 
       - name: Exercise the private validator transport on Linux
         run: |
-          docker build -t xian-wg-test - <<'DOCKERFILE'
+          docker build -t xian-wg-test -f - ../xian-stack/docker/s6-overlay <<'DOCKERFILE'
           FROM alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f
           RUN apk add --no-cache iproute2 wireguard-tools python3
+          COPY usr/local/bin/xian-comet-rpc-address /usr/local/bin/
           DOCKERFILE
+          test "$(docker run --rm --network none -e XIAN_PRIVATE_VALIDATOR_RPC=1 xian-wg-test xian-comet-rpc-address)" = tcp://127.0.0.1:26657
           uvx --from ansible-core python tests/check_private_wireguard.py --image xian-wg-test
