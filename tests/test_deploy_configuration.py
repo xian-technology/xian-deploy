@@ -289,5 +289,88 @@ class AppMetricsTest(PlaybookTestCase):
         self.assertPlaySucceeded(result)
         self.assertEqual(published, '{"host": "127.0.0.1", "port": 9108}')
 
+@requires_ansible
+class TrustedReleaseTest(PlaybookTestCase):
+    """A downloaded profile cannot replace the independently approved release."""
+
+    def check_release(self, *, manifest_update=None, image=None, trust_update=None):
+        import hashlib
+        import json
+
+        manifest = bundle_manifest(genesis_sha256="b" * 64)
+        approved_image = canonical_profile()["node_integrated_image"]
+        pins = {
+            "network_manifest_sha256": hashlib.sha256(
+                json.dumps(manifest).encode()
+            ).hexdigest(),
+            "node_image": approved_image,
+        }
+        return run_play(
+            self.workdir,
+            profile=canonical_profile(node_integrated_image=image or approved_image),
+            manifest=manifest | (manifest_update or {}),
+            variables={"xian_trusted_release": pins | (trust_update or {})},
+            tasks=[],
+        )
+
+    def test_restart_checks_the_existing_container_image(self):
+        from ansible_harness import REPO_ROOT
+
+        image = canonical_profile()["node_integrated_image"]
+        docker = self.workdir / "docker"
+        docker.write_text(
+            "#!/bin/sh\n"
+            'case "$1" in\n'
+            " compose) echo container-a ;;\n"
+            ' inspect) test "$5" = "{{.Config.Image}}" || exit 1; echo "$INSTALLED" ;;\n'
+            " *) exit 1 ;;\n"
+            "esac\n"
+        )
+        docker.chmod(0o755)
+        check = REPO_ROOT / "roles/xian_runtime/tasks/check_installed_release.yml"
+        for installed, success in [
+            (image, True),
+            (image.replace("a" * 64, "d" * 64), False),
+        ]:
+            result = run_play(
+                self.workdir,
+                variables={},
+                tasks=[
+                    {
+                        "ansible.builtin.include_tasks": str(check),
+                        "args": {
+                            "apply": {
+                                "environment": {
+                                    "PATH": str(self.workdir) + ":/usr/bin:/bin",
+                                    "INSTALLED": installed,
+                                }
+                            }
+                        },
+                        "vars": {
+                            "xian_main_compose_path": "/unused.yml",
+                            "xian_project_name": "test",
+                            "xian_trusted_release": {"node_image": image},
+                        },
+                    }
+                ],
+            )
+            if success:
+                self.assertPlaySucceeded(result)
+            else:
+                self.assertPlayFailed(result, "Read installed node image references")
+
+    def test_approved_pair(self):
+        self.assertPlaySucceeded(self.check_release())
+
+    def test_rejects_replaced_image_or_manifest(self):
+        for change in (
+            {"image": "registry.example/xian-node@sha256:" + "f" * 64},
+            {"manifest_update": {"snapshot_signing_keys": ["c" * 64]}},
+            {"trust_update": {"node_image": "registry.example/xian-node:latest"}},
+        ):
+            with self.subTest(change=change):
+                self.assertPlayFailed(self.check_release(**change), "trusted release")
+
+
 if __name__ == "__main__":
     unittest.main()

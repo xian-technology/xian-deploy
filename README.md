@@ -107,6 +107,22 @@ Recipient keys and signing state are preserved. Snapshot trust rests on the
 configured signer; it does not independently replay every block. App-only
 snapshot exports are offline APIs for analysis.
 
+### Pin a release independently
+
+Set `xian_trusted_release` in the private controller inventory when the
+distribution channel alone must not be able to change the node binary or
+bootstrap trust. Supply the exact digest-qualified `node_image` and the
+`network_manifest_sha256` of the reviewed file, including its final newline.
+The approved manifest must contain a chain ID and a lowercase `genesis_sha256`.
+For example, compute the file digest with `shasum -a 256 manifest.json`.
+
+Distribute the pair by an independent authenticated channel, such as physical
+handoff of the private inventory. An upgrade requires an explicit replacement
+of the approved pin. The restore image comes from the same profile, and the
+genesis check binds the installed home to the approved manifest. Keep the
+controller, Docker host and its administration channel inside the trust
+boundary. A compromised host can run arbitrary software.
+
 ## Validation
 
 ```bash

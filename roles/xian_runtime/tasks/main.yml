@@ -35,7 +35,7 @@
 - name: Check the installed node home before deploy or restart
   ansible.builtin.import_tasks: check_node_home.yml
   vars:
-    xian_check_genesis: "{{ xian_runtime_action == 'deploy' }}"
+    xian_check_genesis: "{{ xian_runtime_action == 'deploy' or xian_trusted_release is defined }}"
   when: xian_runtime_action in ['deploy', 'restart']
 
 - name: Create runtime directories
@@ -182,6 +182,10 @@
     {% endif %}
     down
   when: xian_runtime_action == "stop"
+
+- name: Verify the installed image before restarting a pinned release
+  ansible.builtin.import_tasks: check_installed_release.yml
+  when: xian_runtime_action == "restart" and xian_trusted_release is defined
 
 - name: Restart runtime
   ansible.builtin.shell: >-

@@ -294,14 +294,37 @@
     xian_bds_spool_warn_bytes: "{{ xian_profile_bds.get('spool_warn_bytes', xian_bds_spool_warn_bytes) | int }}"
     xian_bds_disk_free_warn_bytes: "{{ xian_profile_bds.get('disk_free_warn_bytes', xian_bds_disk_free_warn_bytes) | int }}"
 
+- name: Read the exact network manifest bytes on the control machine
+  ansible.builtin.slurp:
+    src: "{{ lookup('ansible.builtin.first_found', xian_network_manifest) }}"
+  delegate_to: localhost
+  become: false
+  register: xian_network_file
+  when: xian_network_manifest | length > 0
+
 - name: Load network manifest
   ansible.builtin.set_fact:
     xian_network: >-
-      {{
-        lookup('ansible.builtin.file', xian_network_manifest) | from_json
-        if (xian_network_manifest | length > 0)
-        else {}
-      }}
+      {{ xian_network_file.content | b64decode | from_json
+         if (xian_network_manifest | length > 0) else {} }}
+
+- name: Check the network manifest and node image against the private inventory
+  ansible.builtin.assert:
+    that:
+      - xian_trusted_release is mapping
+      - xian_trusted_release.keys() | sort == ['network_manifest_sha256', 'node_image']
+      - xian_trusted_release.network_manifest_sha256 is string
+      - xian_network_manifest | length > 0
+      - (xian_network_file.content | b64decode | hash('sha256')) == xian_trusted_release.network_manifest_sha256
+      - xian_network.get('genesis_sha256', '') is match('^[0-9a-f]{64}\Z')
+      - xian_network.get('chain_id', '') is string and (xian_network.get('chain_id', '') | length > 0)
+      - xian_trusted_release.node_image is string
+      - xian_trusted_release.node_image is match('^[^@\s]+@sha256:[0-9a-f]{64}\Z')
+      - xian_node_image_integrated == xian_trusted_release.node_image
+    fail_msg: The network manifest and node image must match the trusted release in the private inventory.
+  when:
+    - xian_trusted_release is defined
+    - (xian_runtime_action | default('deploy')) not in ['stop', 'status']
 
 - name: Resolve network chain id
   ansible.builtin.set_fact:
@@ -370,6 +393,7 @@
       {{
         (xian_require_digest_pinned_third_party_images | bool)
         or (xian_operator_profile == 'shared_network')
+        or (xian_trusted_release is defined)
       }}
   ansible.builtin.assert:
     that:

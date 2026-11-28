@@ -1,0 +1,21 @@
+---
+# Compose uses existing containers on restart, even after the profile is edited.
+- name: Locate installed node containers
+  ansible.builtin.command:
+    argv: "{{ ['docker', 'compose', '-p', xian_project_name, '-f', xian_main_compose_path, 'ps', '--all', '--quiet', 'abci'] + (['dashboard'] if xian_dashboard_enabled else []) }}"
+  register: xian_installed_nodes
+  changed_when: false
+
+- name: Require the installed node containers
+  ansible.builtin.assert:
+    that:
+      - xian_installed_nodes.stdout_lines | length == (2 if xian_dashboard_enabled else 1)
+    fail_msg: Deploy the trusted release before restarting the node.
+
+- name: Read installed node image references
+  ansible.builtin.command:
+    argv: [docker, inspect, --type, container, --format, "{% raw %}{{.Config.Image}}{% endraw %}", "{{ item }}"]
+  loop: "{{ xian_installed_nodes.stdout_lines }}"
+  register: xian_installed_image
+  changed_when: false
+  failed_when: xian_installed_image.rc != 0 or xian_installed_image.stdout != xian_trusted_release.node_image
