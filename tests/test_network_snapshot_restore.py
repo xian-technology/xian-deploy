@@ -33,8 +33,10 @@ class RestorePlaybookOrderTest(unittest.TestCase):
     ) -> None:
         play = load_yaml(PLAYBOOK)[0]
         validate_home = next(
-            task for task in play["pre_tasks"]
-            if task["name"] == "Verify the prepared node home before stopping for restore"
+            task
+            for task in play["pre_tasks"]
+            if task["name"]
+            == "Verify the prepared node home before stopping for restore"
         )
         self.assertEqual(
             validate_home["ansible.builtin.include_role"],
@@ -62,11 +64,12 @@ class RestorePlaybookOrderTest(unittest.TestCase):
 
 @requires_ansible
 class RestoreScriptTest(PlaybookTestCase):
-    def render(self, profile: dict, **variables):
+    def render(self, profile: dict, manifest=None, **variables):
         script = self.workdir / "restore.py"
         result = run_play(
             self.workdir,
             profile=profile,
+            manifest=manifest,
             variables=variables,
             tasks=[
                 {
@@ -122,6 +125,19 @@ class RestoreScriptTest(PlaybookTestCase):
                 "expected_chain_id": "local-dev-1",
             },
         )
+
+    def test_network_pq_pins_restrict_recipient_overrides(self) -> None:
+        pin = "ml-dsa-65:" + "01" * 1952
+        manifest = {"snapshot_signing_keys": [pin], "chain_id": "local-dev-1"}
+        profile = canonical_profile(snapshot_url=SNAPSHOT_URL)
+        result, script = self.render(profile, manifest)
+        self.assertPlaySucceeded(result)
+        self.assertEqual(
+            self.restore_call(script)["trusted_manifest_public_keys"], [pin]
+        )
+        profile["snapshot_signing_keys"] = ["c" * 64]
+        result, _ = self.render(profile, manifest)
+        self.assertPlayFailed(result, "network snapshot")
 
     def test_restore_requires_a_profile_snapshot_url(self) -> None:
         result, _ = self.render(canonical_profile(snapshot_signing_keys=["c" * 64]))

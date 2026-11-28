@@ -5,6 +5,21 @@
       - xian_snapshot_url | length > 0
     fail_msg: The node profile has no snapshot_url to restore from.
 
+- name: Constrain profile pins to the network snapshot publishers
+  vars:
+    network_keys: "{{ xian_network.get('snapshot_signing_keys', []) }}"
+  ansible.builtin.assert:
+    that:
+      - >-
+        (network_keys | select('search', ':') | list | length == 0)
+        or ((network_keys | reject('match', '^ml-dsa-65:') | list | length == 0)
+        and (xian_snapshot_signing_keys | difference(network_keys) | length == 0))
+    fail_msg: Profile pins may only narrow the ML-DSA-65 network snapshot publisher list.
+
+- name: Inherit network snapshot signing keys for profiles without pins
+  ansible.builtin.set_fact:
+    xian_snapshot_signing_keys: "{{ xian_snapshot_signing_keys | default(xian_network.get('snapshot_signing_keys', []), true) }}"
+
 - name: Validate network snapshot signing keys
   ansible.builtin.assert:
     that:

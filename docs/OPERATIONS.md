@@ -296,16 +296,23 @@ The playbook validates profile inputs, stops the runtime, invokes the canonical
 only after restore succeeds, one host at a time. The expected chain id is
 `xian_snapshot_expected_chain_id`, or the network manifest chain id when empty.
 
-The signed version-2 manifest identifies `snapshot_kind: "full_node_store"`
+The signed full-store manifest identifies `snapshot_kind: "full_node_store"`
 and binds chain/genesis, height, application root, block hash, archive checksum
 and compressed/unpacked sizes. Complete `data/` and `xian/` stores and their
 native CometBFT checkpoint/history must pass verification before publication.
 This playbook selects the signed-manifest flow and requires a complete
 full-node-store archive. The lower-level restore
-API also supports an independently trusted archive checksum, subject to the
+API on classical homes also supports an independently trusted archive checksum, subject to the
 same full-store, native-checkpoint, genesis, application-root, history and
 resource checks. A self-declared checksum or an unpinned unsigned archive is
 not a trust anchor; this playbook adds no checksum-only option.
+
+For a post-quantum publisher, authenticate and install its complete
+`ml-dsa-65:<public-key-hex>` pin in the network manifest's
+`snapshot_signing_keys`. Profiles inherit that list and may select a subset.
+The node image must support v3 ML-DSA-65 full-store manifests. A PQ pin,
+ML-DSA-65 consensus genesis or account registry requires a signed v3 manifest,
+including for local archives and recovery plans with an independent checksum.
 
 Recipient configuration, node/validator keys and signing state remain local.
 Trusting the configured snapshot signer or an independently authenticated
