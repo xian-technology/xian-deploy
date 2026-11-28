@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: xian-technology/xian-stack
+          ref: 07c4393d2ae306dd774d431116c2391238f5827c
           path: xian-stack
 
       - name: Setup Python
@@ -46,3 +47,11 @@ jobs:
 
       - name: Validate playbooks
         run: make validate
+
+      - name: Exercise the private validator transport on Linux
+        run: |
+          docker build -t xian-wg-test - <<'DOCKERFILE'
+          FROM alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f
+          RUN apk add --no-cache iproute2 wireguard-tools python3
+          DOCKERFILE
+          uvx --from ansible-core python tests/check_private_wireguard.py --image xian-wg-test
